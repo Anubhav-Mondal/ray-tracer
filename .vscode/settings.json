@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "MLTable": "yaml",
+        "limits": "cpp",
+        "utility": "cpp",
+        "memory": "cpp"
+    }
+}
