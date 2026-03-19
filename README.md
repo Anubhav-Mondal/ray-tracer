@@ -44,7 +44,6 @@ Supports PNG, JPG, and HDR (High Dynamic Range).
 ### Prerequisites
 - CMake (version 3.10 or higher).
 - A C++ compiler (GCC/Clang/MSVC) supporting C++17 or higher.
-- An external PPM image viewer (e.g., IrfanView, GIMP, or an online viewer) to see the output.
 
 ### Steps to Run
 #### 1. Clone the repo: 
@@ -69,17 +68,17 @@ cmake --build .
 Once compiled, run the executable and redirect the output to a `.ppm` file:
 #### a. On Windows:
 ```
-./Release/raytracer.exe > image.ppm
+./Release/raytracer
 ```
 #### b. On Linux/Mac:
 ```
-./raytracer.exe > image.ppm
+./raytracer.exe
 ```
 
-And done, the `image.ppm` will be found inside the `build` folder. Use an external `.ppm` image viewer to see the rendered result..
+And done, the `output.png` will be found inside the `build` folder.
 
 ## Roadmap (To-Do)
-- Direct Export: Add support for .png, .jpg, and .hdr output to remove the need for PPM viewers.
+- Add support: `.jpg`, `.hdr` export.
 - Mesh Loading: Implement an .obj file parser to render complex 3D models.
 - Multi-threading: Further optimize the CPU rendering using SIMD or OpenMP.
 

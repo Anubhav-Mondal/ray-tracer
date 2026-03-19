@@ -1,9 +1,11 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "hittable.h"
 #include "pdf.h"
 #include "material.h"
+#include "stb_image_write.h"
 
 class camera {
     public:
@@ -30,8 +32,6 @@ class camera {
         void render(const hittable& world, const hittable& lights) {
             initialize();
 
-            std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-
             for (int j = 0; j < image_height; j++) {
                 std::clog << "\rProgress: " << 100 - (((image_height - j) * 100 )/ image_height) << '%' << ' ' << std::flush;
                 for (int i = 0; i < image_width; i++) {
@@ -42,11 +42,14 @@ class camera {
                             pixel_color += ray_color(r, max_depth, world, lights);
                         }
                     }
-                    write_color(std::cout, pixel_samples_scale * pixel_color);
+                    write_pixel(image_data, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
                 }
             }
+            std::clog << "\rSaving rendered image...  " << std::flush;
 
-            std::clog << "\rDone.                 \n";
+            stbi_write_png("output.png", image_width, image_height, 3, image_data.data(), image_width * 3);
+
+            std::clog << "\rSaved output.png Successfully  \n";
         }
 
     private:
@@ -62,6 +65,7 @@ class camera {
         vec3   defocus_disk_u;       // Defocus disk horizontal radius
         vec3   defocus_disk_v;       // Defocus disk vertical radius
         rtw_image skybox;
+        std::vector<unsigned char> image_data;
 
         void initialize() {
             image_height = int(image_width / aspect_ratio);
@@ -71,6 +75,7 @@ class camera {
             pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
             recip_sqrt_spp = 1.0 / sqrt_spp;
 
+            image_data.resize(image_width * image_height * 3, 0);
 
             center = lookfrom;
 
