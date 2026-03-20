@@ -10,7 +10,7 @@
 #include "texture.h"
 #include "constant_medium.h"
 
-void cornell_box () {
+void cornell_box (const std::string& output_file) {
     hittable_list world;
 
     auto red   = make_shared<lambertian>(color(.65, .05, .05));
@@ -58,10 +58,10 @@ void cornell_box () {
 
     cam.defocus_angle = 0;
 
-    cam.render(world, lights);
+    cam.render(world, lights, output_file);
 }
 
-void test_scene () {
+void test_scene (const std::string& output_file) {
     hittable_list world;
     
     auto floor_material = make_shared<lambertian>(make_shared<checker_texture>(10, color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9)));
@@ -94,9 +94,10 @@ void test_scene () {
 
     cam.defocus_angle = 0;
 
-    cam.render(world, lights);
+    cam.render(world, lights, output_file);
 }
 
-int main() {
-    test_scene();
+int main(int argc, char* argv[]) {
+    std::string output_file = (argc > 1) ? argv[1] : "output.png";
+    test_scene(output_file);
 }

@@ -48,7 +48,7 @@ Supports PNG, JPG, and HDR (High Dynamic Range).
 ### Steps to Run
 #### 1. Clone the repo: 
 ``` 
-clone https://github.com/Anubhav-Mondal/ray-tracer
+git clone https://github.com/Anubhav-Mondal/ray-tracer
 cd ray-tracer
 ```
 #### 2. Make `build` folder:
@@ -70,17 +70,26 @@ Once compiled, run the executable.
 ```
 ./Release/raytracer
 ```
+or
+```
+./Release/raytracer my_render.png
+```
 #### b. On Linux/Mac:
 ```
 ./raytracer
 ```
-#### Customizing Output
-You can change the output filename and format directly in `main.cpp`:
-```cpp
-cam.output_name = "my_render";       // default: "output"
-cam.save_ext = camera::save_extension::hdr;  // png | jpg | hdr
+or
 ```
-The file will be saved in the `build` folder.
+./raytracer my_render.png
+```
+#### Customizing Output
+Pass the output filename as a CLI argument to set the name and format:
+```
+./raytracer my_render.png    # saves as PNG
+./raytracer my_render.jpg    # saves as JPG
+./raytracer my_render.hdr    # saves as HDR
+```
+If no argument is provided, defaults to `output.png`. The file will be saved in the `build` folder.
 
 ## Roadmap (To-Do)
 - Mesh Loading: Implement an .obj file parser to render complex 3D models.

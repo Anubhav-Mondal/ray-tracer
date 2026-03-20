@@ -7,6 +7,7 @@
 #include "material.h"
 #include "stb_image_write.h"
 #include <string>
+#include <algorithm>
 
 class camera {
     public:
@@ -24,10 +25,8 @@ class camera {
         double defocus_angle = 0;          // Variation angle of rays through each pixel
         double focus_dist = 10;            // Distance from camera lookfrom point to plane of perfect focus
         
-        enum class save_extension { png, jpg, hdr};
-        save_extension save_ext = save_extension::png;
-        std::string output_name = "output";
-        int jpg_quality = 100;
+
+        int jpg_quality = 90;
 
         camera() : skybox("") {}
         
@@ -35,7 +34,20 @@ class camera {
         camera(const char* skybox_filename) : skybox(skybox_filename) {}
 
 
-        void render(const hittable& world, const hittable& lights) {
+        void render(const hittable& world, const hittable& lights, const std::string& output_file="output.png") {
+            std::string ext = "";
+            size_t dot = output_file.find_last_of('.');
+            if (dot != std::string::npos) {
+                ext = output_file.substr(dot + 1);
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            }
+
+            if (ext == "jpg" || ext == "jpeg")      save_ext = save_extension::jpg;
+            else if (ext == "hdr")                  save_ext = save_extension::hdr;
+            else                                    save_ext = save_extension::png;
+
+            std::string output_name = (dot != std::string::npos) ? output_file.substr(0, dot) : output_file;
+
             initialize();
 
             for (int j = 0; j < image_height; j++) {
@@ -57,10 +69,10 @@ class camera {
             }
             std::clog << "\rSaving rendered image...  " << std::flush;
 
-            std::string ext = (save_ext == save_extension::jpg) ? ".jpg" 
+            std::string out_ext = (save_ext == save_extension::jpg) ? ".jpg" 
                 : (save_ext == save_extension::hdr) ? ".hdr" 
                 : ".png";
-            std::string out = output_name + ext;
+            std::string out = output_name + out_ext;
 
             if (save_ext == save_extension::hdr) {
                 int result = stbi_write_hdr(out.c_str(), image_width, image_height, 3, hdr_buffer.data());
@@ -99,8 +111,12 @@ class camera {
         vec3   defocus_disk_u;       // Defocus disk horizontal radius
         vec3   defocus_disk_v;       // Defocus disk vertical radius
         rtw_image skybox;
+
         std::vector<unsigned char> ldr_buffer;
         std::vector<float> hdr_buffer;
+
+        enum class save_extension { png, jpg, hdr};
+        save_extension save_ext = save_extension::png;
 
         void initialize() {
             image_height = int(image_width / aspect_ratio);
