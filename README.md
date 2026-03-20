@@ -72,13 +72,13 @@ Once compiled, run the executable and redirect the output to a `.ppm` file:
 ```
 #### b. On Linux/Mac:
 ```
-./raytracer.exe
+./raytracer
 ```
 
 And done, the `output.png` will be found inside the `build` folder.
 
 ## Roadmap (To-Do)
-- Add support: `.jpg`, `.hdr` export.
+- Add support: `.hdr` export.
 - Mesh Loading: Implement an .obj file parser to render complex 3D models.
 - Multi-threading: Further optimize the CPU rendering using SIMD or OpenMP.
 

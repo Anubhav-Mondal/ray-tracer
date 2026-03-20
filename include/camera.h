@@ -6,6 +6,7 @@
 #include "pdf.h"
 #include "material.h"
 #include "stb_image_write.h"
+#include <string>
 
 class camera {
     public:
@@ -22,6 +23,11 @@ class camera {
 
         double defocus_angle = 0;          // Variation angle of rays through each pixel
         double focus_dist = 10;            // Distance from camera lookfrom point to plane of perfect focus
+        
+        enum class save_extension { png, jpg};
+        save_extension save_ext = save_extension::jpg;
+        std::string filename = "output";
+        int jpg_quality = 100;
 
         camera() : skybox("") {}
         
@@ -47,9 +53,22 @@ class camera {
             }
             std::clog << "\rSaving rendered image...  " << std::flush;
 
-            stbi_write_png("output.png", image_width, image_height, 3, image_data.data(), image_width * 3);
+            std::string out = filename + (save_ext == save_extension::jpg ? ".jpg" : ".png");
+            if (save_ext == save_extension::jpg) {
+                int result = stbi_write_jpg(out.c_str(), image_width, image_height, 3, image_data.data(), jpg_quality);
+                if (!result) {
+                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    return;
+                }
+            } else {
+                int result = stbi_write_png(out.c_str(), image_width, image_height, 3, image_data.data(), image_width * 3);
+                if (!result) {
+                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    return;
+                }
+            }
 
-            std::clog << "\rSaved output.png Successfully  \n";
+            std::clog << "\rSaved " << out << " Successfully  \n";
         }
 
     private:
