@@ -1,5 +1,5 @@
 # Custom C++ CPU Ray Tracer
-A high-performance, CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, and acceleration structures.
+A CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, and acceleration structures.
 
 ## Key Features
 ### Primitives & Acceleration
@@ -44,12 +44,11 @@ Supports PNG, JPG, and HDR (High Dynamic Range).
 ### Prerequisites
 - CMake (version 3.10 or higher).
 - A C++ compiler (GCC/Clang/MSVC) supporting C++17 or higher.
-- An external PPM image viewer (e.g., IrfanView, GIMP, or an online viewer) to see the output.
 
 ### Steps to Run
 #### 1. Clone the repo: 
 ``` 
-clone https://github.com/Anubhav-Mondal/ray-tracer
+git clone https://github.com/Anubhav-Mondal/ray-tracer
 cd ray-tracer
 ```
 #### 2. Make `build` folder:
@@ -66,20 +65,33 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 #### 5. Run the Renderer:
-Once compiled, run the executable and redirect the output to a `.ppm` file:
+Once compiled, run the executable.
 #### a. On Windows:
 ```
-./Release/raytracer.exe > image.ppm
+./Release/raytracer
+```
+or
+```
+./Release/raytracer my_render.png
 ```
 #### b. On Linux/Mac:
 ```
-./raytracer.exe > image.ppm
+./raytracer
 ```
-
-And done, the `image.ppm` will be found inside the `build` folder. Use an external `.ppm` image viewer to see the rendered result..
+or
+```
+./raytracer my_render.png
+```
+#### Customizing Output
+Pass the output filename as a CLI argument to set the name and format:
+```
+./raytracer my_render.png    # saves as PNG
+./raytracer my_render.jpg    # saves as JPG
+./raytracer my_render.hdr    # saves as HDR
+```
+If no argument is provided, defaults to `output.png`. The file will be saved in the `build` folder.
 
 ## Roadmap (To-Do)
-- Direct Export: Add support for .png, .jpg, and .hdr output to remove the need for PPM viewers.
 - Mesh Loading: Implement an .obj file parser to render complex 3D models.
 - Multi-threading: Further optimize the CPU rendering using SIMD or OpenMP.
 

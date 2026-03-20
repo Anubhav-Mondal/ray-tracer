@@ -1,9 +1,13 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "hittable.h"
 #include "pdf.h"
 #include "material.h"
+#include "stb_image_write.h"
+#include <string>
+#include <algorithm>
 
 class camera {
     public:
@@ -20,6 +24,9 @@ class camera {
 
         double defocus_angle = 0;          // Variation angle of rays through each pixel
         double focus_dist = 10;            // Distance from camera lookfrom point to plane of perfect focus
+        
+
+        int jpg_quality = 90;
 
         camera() : skybox("") {}
         
@@ -27,10 +34,21 @@ class camera {
         camera(const char* skybox_filename) : skybox(skybox_filename) {}
 
 
-        void render(const hittable& world, const hittable& lights) {
-            initialize();
+        void render(const hittable& world, const hittable& lights, const std::string& output_file="output.png") {
+            std::string ext = "";
+            size_t dot = output_file.find_last_of('.');
+            if (dot != std::string::npos) {
+                ext = output_file.substr(dot + 1);
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            }
 
-            std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+            if (ext == "jpg" || ext == "jpeg")      save_ext = save_extension::jpg;
+            else if (ext == "hdr")                  save_ext = save_extension::hdr;
+            else                                    save_ext = save_extension::png;
+
+            std::string output_name = (dot != std::string::npos) ? output_file.substr(0, dot) : output_file;
+
+            initialize();
 
             for (int j = 0; j < image_height; j++) {
                 std::clog << "\rProgress: " << 100 - (((image_height - j) * 100 )/ image_height) << '%' << ' ' << std::flush;
@@ -42,11 +60,42 @@ class camera {
                             pixel_color += ray_color(r, max_depth, world, lights);
                         }
                     }
-                    write_color(std::cout, pixel_samples_scale * pixel_color);
+                    if (save_ext == save_extension::hdr){
+                        write_hdr_pixel(hdr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+                    } else {
+                        write_ldr_pixel(ldr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+                    }
+                }
+            }
+            std::clog << "\rSaving rendered image...  " << std::flush;
+
+            std::string out_ext = (save_ext == save_extension::jpg) ? ".jpg" 
+                : (save_ext == save_extension::hdr) ? ".hdr" 
+                : ".png";
+            std::string out = output_name + out_ext;
+
+            if (save_ext == save_extension::hdr) {
+                int result = stbi_write_hdr(out.c_str(), image_width, image_height, 3, hdr_buffer.data());
+                if (!result) {
+                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    return;
+                }
+            }
+            else if (save_ext == save_extension::jpg) {
+                int result = stbi_write_jpg(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), jpg_quality);
+                if (!result) {
+                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    return;
+                }
+            } else {
+                int result = stbi_write_png(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), image_width * 3);
+                if (!result) {
+                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    return;
                 }
             }
 
-            std::clog << "\rDone.                 \n";
+            std::clog << "\rSaved " << out << " Successfully  \n";
         }
 
     private:
@@ -63,6 +112,12 @@ class camera {
         vec3   defocus_disk_v;       // Defocus disk vertical radius
         rtw_image skybox;
 
+        std::vector<unsigned char> ldr_buffer;
+        std::vector<float> hdr_buffer;
+
+        enum class save_extension { png, jpg, hdr};
+        save_extension save_ext = save_extension::png;
+
         void initialize() {
             image_height = int(image_width / aspect_ratio);
             image_height = (image_height < 1) ? 1 : image_height;
@@ -71,6 +126,8 @@ class camera {
             pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
             recip_sqrt_spp = 1.0 / sqrt_spp;
 
+            ldr_buffer.resize(image_width * image_height * 3, 0);
+            hdr_buffer.resize(image_width * image_height * 3, 0);
 
             center = lookfrom;
 
