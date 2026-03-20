@@ -24,9 +24,9 @@ class camera {
         double defocus_angle = 0;          // Variation angle of rays through each pixel
         double focus_dist = 10;            // Distance from camera lookfrom point to plane of perfect focus
         
-        enum class save_extension { png, jpg};
-        save_extension save_ext = save_extension::jpg;
-        std::string filename = "output";
+        enum class save_extension { png, jpg, hdr};
+        save_extension save_ext = save_extension::png;
+        std::string output_name = "output";
         int jpg_quality = 100;
 
         camera() : skybox("") {}
@@ -48,20 +48,35 @@ class camera {
                             pixel_color += ray_color(r, max_depth, world, lights);
                         }
                     }
-                    write_pixel(image_data, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+                    if (save_ext == save_extension::hdr){
+                        write_hdr_pixel(hdr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+                    } else {
+                        write_ldr_pixel(ldr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+                    }
                 }
             }
             std::clog << "\rSaving rendered image...  " << std::flush;
 
-            std::string out = filename + (save_ext == save_extension::jpg ? ".jpg" : ".png");
-            if (save_ext == save_extension::jpg) {
-                int result = stbi_write_jpg(out.c_str(), image_width, image_height, 3, image_data.data(), jpg_quality);
+            std::string ext = (save_ext == save_extension::jpg) ? ".jpg" 
+                : (save_ext == save_extension::hdr) ? ".hdr" 
+                : ".png";
+            std::string out = output_name + ext;
+
+            if (save_ext == save_extension::hdr) {
+                int result = stbi_write_hdr(out.c_str(), image_width, image_height, 3, hdr_buffer.data());
+                if (!result) {
+                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    return;
+                }
+            }
+            else if (save_ext == save_extension::jpg) {
+                int result = stbi_write_jpg(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), jpg_quality);
                 if (!result) {
                     std::cerr << "\nError: Failed to save " << out << "\n";
                     return;
                 }
             } else {
-                int result = stbi_write_png(out.c_str(), image_width, image_height, 3, image_data.data(), image_width * 3);
+                int result = stbi_write_png(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), image_width * 3);
                 if (!result) {
                     std::cerr << "\nError: Failed to save " << out << "\n";
                     return;
@@ -84,7 +99,8 @@ class camera {
         vec3   defocus_disk_u;       // Defocus disk horizontal radius
         vec3   defocus_disk_v;       // Defocus disk vertical radius
         rtw_image skybox;
-        std::vector<unsigned char> image_data;
+        std::vector<unsigned char> ldr_buffer;
+        std::vector<float> hdr_buffer;
 
         void initialize() {
             image_height = int(image_width / aspect_ratio);
@@ -94,7 +110,8 @@ class camera {
             pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
             recip_sqrt_spp = 1.0 / sqrt_spp;
 
-            image_data.resize(image_width * image_height * 3, 0);
+            ldr_buffer.resize(image_width * image_height * 3, 0);
+            hdr_buffer.resize(image_width * image_height * 3, 0);
 
             center = lookfrom;
 

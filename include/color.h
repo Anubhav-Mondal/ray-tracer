@@ -14,7 +14,12 @@ inline double linear_to_gamma(double linear_component)
     return 0;
 }
 
-void write_pixel(std::vector<unsigned char>& image_data, const color& pixel_color, int i) {
+void write_ldr_pixel(std::vector<unsigned char>& ldr_buffer, const color& pixel_color, int i) {
+    if (i+2 >= ldr_buffer.size()) {
+        std::cerr << "Error: Attempting to write pixel data beyond the end of the image data buffer!" << std::endl;
+        return;
+    }
+
     auto r = pixel_color.x();
     auto g = pixel_color.y();
     auto b = pixel_color.z();
@@ -29,14 +34,20 @@ void write_pixel(std::vector<unsigned char>& image_data, const color& pixel_colo
 
     static const interval intensity(0.000, 0.999);
 
-    if (i+2 >= image_data.size()) {
+    ldr_buffer[i]   = static_cast<unsigned char>(256 * intensity.clamp(r));
+    ldr_buffer[i+1] = static_cast<unsigned char>(256 * intensity.clamp(g));
+    ldr_buffer[i+2] = static_cast<unsigned char>(256 * intensity.clamp(b));
+}
+
+void write_hdr_pixel(std::vector<float>& hdr_buffer, const color& pixel_color, int i) {
+    if (i+2 >= hdr_buffer.size()) {
         std::cerr << "Error: Attempting to write pixel data beyond the end of the image data buffer!" << std::endl;
         return;
     }
 
-    image_data[i]   = static_cast<unsigned char>(256 * intensity.clamp(r));
-    image_data[i+1] = static_cast<unsigned char>(256 * intensity.clamp(g));
-    image_data[i+2] = static_cast<unsigned char>(256 * intensity.clamp(b));
+    hdr_buffer[i]   = static_cast<float>(pixel_color.x());
+    hdr_buffer[i+1] = static_cast<float>(pixel_color.y());
+    hdr_buffer[i+2] = static_cast<float>(pixel_color.z());
 }
 
 #endif

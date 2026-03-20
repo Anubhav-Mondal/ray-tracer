@@ -1,5 +1,5 @@
 # Custom C++ CPU Ray Tracer
-A high-performance, CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, and acceleration structures.
+A CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, and acceleration structures.
 
 ## Key Features
 ### Primitives & Acceleration
@@ -65,7 +65,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 #### 5. Run the Renderer:
-Once compiled, run the executable and redirect the output to a `.ppm` file:
+Once compiled, run the executable.
 #### a. On Windows:
 ```
 ./Release/raytracer
@@ -74,11 +74,15 @@ Once compiled, run the executable and redirect the output to a `.ppm` file:
 ```
 ./raytracer
 ```
-
-And done, the `output.png` will be found inside the `build` folder.
+#### Customizing Output
+You can change the output filename and format directly in `main.cpp`:
+```cpp
+cam.output_name = "my_render";       // default: "output"
+cam.save_ext = camera::save_extension::hdr;  // png | jpg | hdr
+```
+The file will be saved in the `build` folder.
 
 ## Roadmap (To-Do)
-- Add support: `.hdr` export.
 - Mesh Loading: Implement an .obj file parser to render complex 3D models.
 - Multi-threading: Further optimize the CPU rendering using SIMD or OpenMP.
 
