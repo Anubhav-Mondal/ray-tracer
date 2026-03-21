@@ -12,3 +12,6 @@ include_directories(external)
 
 set(SOURCES "src/main.cpp")
 add_executable(raytracer ${SOURCES})
+
+find_package(OpenMP REQUIRED)
+target_link_libraries(raytracer OpenMP::OpenMP_CXX)

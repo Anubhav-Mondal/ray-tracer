@@ -8,6 +8,7 @@
 #include "stb_image_write.h"
 #include <string>
 #include <algorithm>
+#include <omp.h>
 
 class camera {
     public:
@@ -50,8 +51,10 @@ class camera {
 
             initialize();
 
+            std::atomic<int> completed_rows(0);
+
+            #pragma omp parallel for schedule(dynamic, 2)
             for (int j = 0; j < image_height; j++) {
-                std::clog << "\rProgress: " << 100 - (((image_height - j) * 100 )/ image_height) << '%' << ' ' << std::flush;
                 for (int i = 0; i < image_width; i++) {
                     color pixel_color(0,0,0);
                     for (int s_j = 0; s_j < sqrt_spp; s_j++) {
@@ -64,6 +67,16 @@ class camera {
                         write_hdr_pixel(hdr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
                     } else {
                         write_ldr_pixel(ldr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+                    }
+                }
+                int done = ++completed_rows;
+                int percent = done * 100 / image_height;
+                int prev_percent = (done-1) * 100 / image_height;
+
+                if (percent != prev_percent) {
+                    #pragma omp critical
+                    {
+                        std::clog << "\rProgress: " << percent << "%" << std::flush;
                     }
                 }
             }
@@ -194,16 +207,27 @@ class camera {
             if (skybox.height() <= 0)
                 return background;
 
-            vec3 dir = unit_vector(r.direction());
+            vec3 dir = r.direction();
+
+            if (dir.length_squared() < 1e-8) {
+                return background;
+            }
+
+            dir = unit_vector(dir);
+
+            double dy = std::clamp(dir.y(), -1.0, 1.0);
+
             double u = 0.5f + atan2(dir.z(), dir.x()) / (2 * PI);
-            double v = 0.5f - asin(dir.y()) / PI;
+            double v = 0.5f - asin(dy) / PI;
+
+            if (!std::isfinite(u) || !std::isfinite(v))
+                return background;
             
-            auto i = int(u * skybox.width());
-            auto j = int(v * skybox.height());
+            auto i = std::min(std::max(int(u * skybox.width()),  0), skybox.width()  - 1);
+            auto j = std::min(std::max(int(v * skybox.height()), 0), skybox.height() - 1);
 
             try {
                 if (skybox.is_hdr_image()) {
-                    // std::cout << "PDF " << std::endl;
                     auto pixel = skybox.pixel_data_float(i, j); 
                     return color(pixel[0], pixel[1], pixel[2]);
                 } else {
@@ -233,17 +257,36 @@ class camera {
                 return color_from_emission;
 
             if (srec.skip_pdf) {
+                if (srec.skip_pdf_ray.direction().length_squared() < 1e-8)
+                    return color_from_emission;
                 return srec.attenuation * ray_color(srec.skip_pdf_ray, depth-1, world, lights);
             }
 
             auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
             mixture_pdf p(light_ptr, srec.pdf_ptr);
 
-            ray scattered = ray(rec.p, p.generate(), r.time());
-            auto pdf_value = p.value(scattered.direction());
+            ray scattered;
+            double pdf_value;
+
+            if (dynamic_cast<const hittable_list*>(&lights) != nullptr 
+                && static_cast<const hittable_list&>(lights).empty()) {
+                scattered = ray(rec.p, srec.pdf_ptr->generate(), r.time());
+                if (scattered.direction().length_squared() < 1e-8)
+                    return color_from_emission;
+                pdf_value = srec.pdf_ptr->value(scattered.direction());
+            } else {
+                auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+                mixture_pdf p(light_ptr, srec.pdf_ptr);
+                scattered = ray(rec.p, p.generate(), r.time());
+                if (scattered.direction().length_squared() < 1e-8)
+                    return color_from_emission;
+                pdf_value = p.value(scattered.direction());
+            }
+
+            if (pdf_value < 1e-8)
+                return color_from_emission;
 
             double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
-
             color sample_color = ray_color(scattered, depth-1, world, lights);
             color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_value;
 

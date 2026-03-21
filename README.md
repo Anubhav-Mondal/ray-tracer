@@ -6,6 +6,7 @@ A CPU-based ray tracer built from scratch in C++. This project started as an imp
 - Supported Shapes: Spheres, Triangles, and Quads.
 - Efficiency: Uses BVH (Bounding Volume Hierarchy) to significantly speed up render times for complex scenes.
 - Engine: Entirely CPU-based with no external graphics APIs (No OpenGL/DirectX).
+- Multi-threading with OpenMP for faster rendering on multi-core processors.
 ### Materials & Rendering
 #### Material Library: 
 - Dielectric: Realistic glass and water.
@@ -93,7 +94,6 @@ If no argument is provided, defaults to `output.png`. The file will be saved in 
 
 ## Roadmap (To-Do)
 - Mesh Loading: Implement an .obj file parser to render complex 3D models.
-- Multi-threading: Further optimize the CPU rendering using SIMD or OpenMP.
 
 ## Acknowledgments
 This project was inspired by and built upon the excellent Ray Tracing in One Weekend book series. It served as the foundation for the core math, which I have since expanded with custom features like advanced material coats and HDR support.

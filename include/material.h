@@ -62,6 +62,11 @@ class metal : public material {
         vec3 reflected = reflect(r_in.direction(), rec.normal);
         reflected = unit_vector(reflected) + (fuzz * random_unit_vector());
 
+        if (reflected.length_squared() < 1e-8)
+            reflected = unit_vector(reflect(r_in.direction(), rec.normal)); // fallback without fuzz
+
+        srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
+
         srec.attenuation = albedo;
         srec.pdf_ptr = nullptr;
         srec.skip_pdf = true;
@@ -158,6 +163,11 @@ class glossy : public material {
         if (random_double() < fresnel * specular_strength) {
             vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
             reflected = unit_vector(reflected) + (roughness * random_unit_vector());
+
+            if (reflected.length_squared() < 1e-8)
+                reflected = unit_vector(reflect(unit_vector(r_in.direction()), rec.normal));
+
+            srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
             
             srec.attenuation = color(1.0, 1.0, 1.0); // White specular highlights 
             srec.pdf_ptr = nullptr;
@@ -173,15 +183,8 @@ class glossy : public material {
     }
 
     double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
-        double fresnel = schlick_approximation(r_in, rec.normal);
-        double specular_prob = fresnel * specular_strength;
-        
-        if (random_double() < specular_prob) {
-            return 0; 
-        } else {
-            auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
-            return cos_theta < 0 ? 0 : cos_theta/pi;
-        }
+        auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
+        return cos_theta < 0 ? 0 : cos_theta / pi;
     }
 
   private:
@@ -210,7 +213,10 @@ class frosted_glass : public material {
         vec3 unit_direction = unit_vector(r_in.direction());
         
         vec3 perturbed_normal = rec.normal + (roughness * random_unit_vector());
-        perturbed_normal = unit_vector(perturbed_normal);
+        if (perturbed_normal.length_squared() < 1e-8)
+            perturbed_normal = rec.normal;
+        else
+            perturbed_normal = unit_vector(perturbed_normal);
         
         double cos_theta = fmin(dot(-unit_direction, perturbed_normal), 1.0);
         double sin_theta = sqrt(1.0 - cos_theta*cos_theta);
@@ -225,7 +231,11 @@ class frosted_glass : public material {
             direction = refract(unit_direction, perturbed_normal, ri);
             direction = unit_vector(direction) + (roughness * 0.3 * random_unit_vector());
         }
-        
+        if (direction.length_squared() < 1e-8)
+            direction = perturbed_normal;
+        else
+            direction = unit_vector(direction);
+
         srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
         return true;
     }
@@ -276,18 +286,18 @@ class advanced_frosted_glass : public material {
             } else {
                 direction = refract(unit_direction, microfacet_normal, ri);
             }
-            
+
+            if (direction.length_squared() < 1e-8)
+                direction = microfacet_normal;
+
             srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
             return true;
         }
     }
 
     double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
-        if (random_double() < subsurface_scattering) {
-            auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
-            return cos_theta < 0 ? 0 : cos_theta/pi;
-        }
-        return 0;
+        auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
+        return cos_theta < 0 ? 0 : cos_theta / pi;
     }
 
   private:
@@ -299,6 +309,8 @@ class advanced_frosted_glass : public material {
     vec3 sample_microfacet_normal(const vec3& normal, double alpha) const {
         double r1 = random_double();
         double r2 = random_double();
+
+        r1 = std::clamp(r1, 0.0, 1.0 - 1e-10);  
         
         double theta = atan(alpha * sqrt(r1) / sqrt(1.0 - r1));
         double phi = 2.0 * pi * r2;

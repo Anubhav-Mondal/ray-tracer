@@ -47,9 +47,14 @@ class hittable_list : public hittable {
         }
 
         vec3 random(const point3& origin) const override {
+            if (objects.empty())
+                return vec3(1, 0, 0);
+                
             auto int_size = int(objects.size());
             return objects[random_int(0, int_size-1)]->random(origin);
         }
+
+        bool empty() const { return objects.empty(); }
 
     private:
         aabb bbox;
