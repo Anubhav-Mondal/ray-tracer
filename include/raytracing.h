@@ -50,5 +50,6 @@ inline int random_int(int min, int max) {
 #include "ray.h"
 #include "interval.h"
 #include "vec3.h"
+#include "vec2.h"
 
 #endif
