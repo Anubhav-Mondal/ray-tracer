@@ -7,6 +7,8 @@
 #include "material.h"
 #include "quad.h"
 #include "sphere.h"
+#include "triangle.h"
+#include "mesh_loader.h"
 #include "texture.h"
 #include "constant_medium.h"
 
@@ -68,28 +70,29 @@ void test_scene (const std::string& output_file) {
     auto yellow_light = make_shared<diffuse_light>(color(10, 5, 0));
     auto white_light = make_shared<diffuse_light>(color(5, 5, 5));
     auto blue_light = make_shared<diffuse_light>(color(2, 2, 10));
-    auto metal_material = make_shared<metal>(color(1, 1, 1), 0);
+    auto metal_material = make_shared<metal>(color(0.7, 0.5, 0.2), 0.3);
     auto glass_material = make_shared<dielectric>(1.5);
     auto frosted_glass_mat = make_shared<advanced_frosted_glass>(1.5);
-    auto mirror = make_shared<metal>(color(1, 1, 1), 0.3);
+    auto mirror = make_shared<metal>(color(1, 1, 1), 0.0);
     auto glossy_material = make_shared<glossy>(color(0.8, 0.1, 0.0), 0.0, 1.9);
 
-    world.add(make_shared<sphere>(point3(0, 0, 0), 45, glass_material));
+    auto model = load_obj("../models/teapot.obj", mirror);
+    world.add(model);
 
     auto empty_material = shared_ptr<material>();
     hittable_list lights;
 
-    camera cam("skybox/cobblestone_street_night.hdr");
+    camera cam("skybox/room_indoor.hdr");
 
     cam.aspect_ratio      = 1.0;
     cam.image_width       = 512;
-    cam.samples_per_pixel = 500;
-    cam.max_depth         = 24;
+    cam.samples_per_pixel = 100;
+    cam.max_depth         = 8;
     cam.background        = color(0.1, 0.1, 0.2);
 
     cam.vfov     = 40;
-    cam.lookfrom = point3(0, 30, 250);  
-    cam.lookat   = point3(0, 0, 0); 
+    cam.lookfrom = point3(120, 30, 250);  
+    cam.lookat   = point3(0, 30, 0); 
     cam.vup      = vec3(0, 1, 0);
 
     cam.defocus_angle = 0;
