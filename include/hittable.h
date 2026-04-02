@@ -149,4 +149,59 @@ class rotate_y : public hittable {
     aabb bbox;
 };
 
+class scale : public hittable {
+  public:
+    // Uniform scale
+    scale(shared_ptr<hittable> object, double s)
+      : scale(object, vec3(s, s, s)) {}
+
+    // Per-axis scale
+    scale(shared_ptr<hittable> object, const vec3& s)
+      : object(object), scale_factor(s), inv_scale(1.0/s.x(), 1.0/s.y(), 1.0/s.z())
+    {
+        aabb ob = object->bounding_box();
+        bbox = aabb(
+            point3(ob.x.min * s.x(), ob.y.min * s.y(), ob.z.min * s.z()),
+            point3(ob.x.max * s.x(), ob.y.max * s.y(), ob.z.max * s.z())
+        );
+    }
+
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        ray scaled_r(
+            point3(r.origin().x() * inv_scale.x(),
+                   r.origin().y() * inv_scale.y(),
+                   r.origin().z() * inv_scale.z()),
+            vec3(r.direction().x() * inv_scale.x(),
+                 r.direction().y() * inv_scale.y(),
+                 r.direction().z() * inv_scale.z()),
+            r.time()
+        );
+
+        if (!object->hit(scaled_r, ray_t, rec))
+            return false;
+
+        rec.p = point3(
+            rec.p.x() * scale_factor.x(),
+            rec.p.y() * scale_factor.y(),
+            rec.p.z() * scale_factor.z()
+        );
+
+        rec.normal = unit_vector(vec3(
+            rec.normal.x() * inv_scale.x(),
+            rec.normal.y() * inv_scale.y(),
+            rec.normal.z() * inv_scale.z()
+        ));
+
+        return true;
+    }
+
+    aabb bounding_box() const override { return bbox; }
+
+  private:
+    shared_ptr<hittable> object;
+    vec3 scale_factor;
+    vec3 inv_scale;
+    aabb bbox;
+};
+
 #endif
