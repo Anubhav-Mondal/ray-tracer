@@ -56,18 +56,53 @@ class lambertian : public material {
 
 class metal : public material {
   public:
-    metal(const color& albedo, double fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1) {}
+    metal(const color& albedo, double fuzz = 0.0) 
+        : albedo(albedo), fuzz(std::clamp(fuzz, 0.0, 1.0)) {}
+
+    metal& add_albedo_map(shared_ptr<texture> tex) { albedoMap = tex; return *this; }
+    metal& add_fuzz_map(shared_ptr<texture> tex)   { fuzzMap   = tex; return *this; }
+    metal& add_normal_map(shared_ptr<texture> tex) { normalMap = tex; return *this; }
+    metal& set_albedo(const color& c)              { albedo    = c;   return *this; }
+    metal& set_fuzz(double f)                      { fuzz = std::clamp(f, 0.0, 1.0); return *this; }
+    metal& remove_albedo_map()                     { albedoMap = nullptr; return *this; }
+    metal& remove_fuzz_map()                       { fuzzMap   = nullptr; return *this; }
+    metal& remove_normal_map()                     { normalMap = nullptr; return *this; }
 
     bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
-        vec3 reflected = reflect(r_in.direction(), rec.normal);
-        reflected = unit_vector(reflected) + (fuzz * random_unit_vector());
+        vec3 normal = rec.normal;
+        if (normalMap && !normalMap->is_empty()) {
+            color normalColors = normalMap->value(rec.u, rec.v, rec.p);
+            vec3 tangentNormal = vec3(
+                normalColors.e[0] * 2.0 - 1.0,
+                normalColors.e[1] * 2.0 - 1.0,
+                normalColors.e[2] * 2.0 - 1.0
+            );
+
+            if (tangentNormal.length() > 0.001) {
+                vec3 N = unit_vector(rec.normal);
+                vec3 up = (std::abs(dot(N, vec3(0,1,0))) > 0.9) ? vec3(1,0,0) : vec3(0,1,0);
+                vec3 T = unit_vector(cross(up, N));
+                vec3 B = cross(N, T);
+                normal = unit_vector(T * tangentNormal.x() +
+                                     B * tangentNormal.y() +
+                                     N * tangentNormal.z());
+            }
+        }
+
+        vec3 reflected = reflect(r_in.direction(), normal);
+
+        double effective_fuzz = (fuzzMap && !fuzzMap->is_empty())
+            ? std::min(1.0, fuzzMap->value(rec.u, rec.v, rec.p).e[0])
+            : fuzz;
+        reflected = unit_vector(reflected) + (effective_fuzz * random_unit_vector());
 
         if (reflected.length_squared() < 1e-8)
-            reflected = unit_vector(reflect(r_in.direction(), rec.normal)); // fallback without fuzz
+            reflected = unit_vector(reflect(r_in.direction(), normal));
 
-        srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
+        srec.attenuation = (albedoMap && !albedoMap->is_empty())
+            ? albedoMap->value(rec.u, rec.v, rec.p)
+            : albedo;
 
-        srec.attenuation = albedo;
         srec.pdf_ptr = nullptr;
         srec.skip_pdf = true;
         srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
@@ -78,6 +113,9 @@ class metal : public material {
   private:
     color albedo;
     double fuzz;
+    shared_ptr<texture> albedoMap = nullptr;
+    shared_ptr<texture> fuzzMap   = nullptr;
+    shared_ptr<texture> normalMap = nullptr;
 };
 
 class dielectric : public material {
