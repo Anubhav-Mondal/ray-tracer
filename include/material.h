@@ -4,6 +4,7 @@
 #include "hittable.h"
 #include "texture.h"
 #include "pdf.h"
+#include "material_utility.h"
 
 class scatter_record {
   public:
@@ -37,21 +38,33 @@ class lambertian : public material {
     lambertian(const color& albedo) : tex(make_shared<solid_color>(albedo)) {}
     lambertian(shared_ptr<texture> tex) : tex(tex) {}
 
+    lambertian& add_normal_map(shared_ptr<texture> t) { normalMap = t; return *this; }
+    lambertian& remove_normal_map() { normalMap = nullptr; return *this; }
+
     bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
+        vec3 normal = (normalMap && !normalMap->is_empty())
+            ? apply_normal_map(normalMap, rec)
+            : rec.normal;
+
         srec.attenuation = tex->value(rec.u, rec.v, rec.p);
-        srec.pdf_ptr = make_shared<cosine_pdf>(rec.normal);
+        srec.pdf_ptr = make_shared<cosine_pdf>(normal);
         srec.skip_pdf = false;
         return true;
     }
 
     double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered)
     const override {
-        auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
+        vec3 normal = (normalMap && !normalMap->is_empty())
+            ? apply_normal_map(normalMap, rec)
+            : rec.normal;
+
+        auto cos_theta = dot(normal, unit_vector(scattered.direction()));
         return cos_theta < 0 ? 0 : cos_theta/pi;
     }
 
   private:
     shared_ptr<texture> tex;
+    shared_ptr<texture> normalMap = nullptr;
 };
 
 class metal : public material {
