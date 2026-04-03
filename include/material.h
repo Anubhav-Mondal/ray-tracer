@@ -1,5 +1,4 @@
-#ifndef MATERIAL_H
-#define MATERIAL_H
+#pragma once
 
 #include "hittable.h"
 #include "texture.h"
@@ -288,138 +287,95 @@ class glossy : public material {
 
 class frosted_glass : public material {
   public:
-    frosted_glass(double refraction_index, double roughness = 0.1, const color& tint = color(1.0, 1.0, 1.0)) 
-        : refraction_index(refraction_index), roughness(roughness), tint(tint) {}
+    frosted_glass(double refraction_index, double roughness = 0.1,
+                  double subsurface_scattering = 0.0,
+                  const color& tint = color(1.0, 1.0, 1.0))
+        : refraction_index(refraction_index), roughness(roughness),
+          subsurface_scattering(subsurface_scattering), tint(tint) {}
+
+    frosted_glass& add_albedo_map(shared_ptr<texture> tex) { albedoMap = tex; return *this; }
+    frosted_glass& add_normal_map(shared_ptr<texture> tex) { normalMap = tex; return *this; }
+    frosted_glass& set_two_sided(bool v) { two_sided = v; return *this; }
 
     bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
-        srec.attenuation = tint;
+        vec3 normal = (normalMap && !normalMap->is_empty())
+            ? apply_normal_map(normalMap, rec)
+            : rec.normal;
+
+        if (random_double() < subsurface_scattering) {
+            srec.attenuation = (albedoMap && !albedoMap->is_empty())
+                ? albedoMap->value(rec.u, rec.v, rec.p)
+                : tint;
+            srec.pdf_ptr = make_shared<cosine_pdf>(normal);
+            srec.skip_pdf = false;
+            return true;
+        }
+
         srec.pdf_ptr = nullptr;
         srec.skip_pdf = true;
-        
+
         double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
         vec3 unit_direction = unit_vector(r_in.direction());
-        
-        vec3 perturbed_normal = rec.normal + (roughness * random_unit_vector());
-        if (perturbed_normal.length_squared() < 1e-8)
-            perturbed_normal = rec.normal;
-        else
-            perturbed_normal = unit_vector(perturbed_normal);
-        
-        double cos_theta = fmin(dot(-unit_direction, perturbed_normal), 1.0);
+        vec3 microfacet_normal = sample_microfacet_normal(normal, roughness);
+
+        double cos_theta = fmin(dot(-unit_direction, microfacet_normal), 1.0);
         double sin_theta = sqrt(1.0 - cos_theta*cos_theta);
-        
-        bool cannot_refract = ri * sin_theta > 1.0;
+
         vec3 direction;
-        
-        if (cannot_refract || reflectance(cos_theta, ri) > random_double()) {
-            direction = reflect(unit_direction, perturbed_normal);
-            direction = unit_vector(direction) + (roughness * 0.5 * random_unit_vector());
+        if (ri * sin_theta > 1.0 || reflectance(cos_theta, ri) > random_double()) {
+            direction = reflect(unit_direction, microfacet_normal);
+            srec.attenuation = color(1.0, 1.0, 1.0);
         } else {
-            direction = refract(unit_direction, perturbed_normal, ri);
-            direction = unit_vector(direction) + (roughness * 0.3 * random_unit_vector());
+            direction = refract(unit_direction, microfacet_normal, ri);
+            srec.attenuation = (albedoMap && !albedoMap->is_empty())
+                ? albedoMap->value(rec.u, rec.v, rec.p)
+                : tint;
         }
+
         if (direction.length_squared() < 1e-8)
-            direction = perturbed_normal;
-        else
-            direction = unit_vector(direction);
+            direction = microfacet_normal;
 
         srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
         return true;
     }
 
-  private:
-    double refraction_index;
-    double roughness;
-    color tint;
-    
-    static double reflectance(double cosine, double refraction_index) {
-        auto r0 = (1 - refraction_index) / (1 + refraction_index);
-        r0 = r0*r0;
-        return r0 + (1-r0)*pow((1 - cosine), 5);
-    }
-};
-
-class advanced_frosted_glass : public material {
-  public:
-    advanced_frosted_glass(double refraction_index, double roughness = 0.1, 
-                          double subsurface_scattering = 0.2, const color& tint = color(1.0, 1.0, 1.0)) 
-        : refraction_index(refraction_index), roughness(roughness), 
-          subsurface_scattering(subsurface_scattering), tint(tint) {}
-
-    bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
-        srec.attenuation = tint;
-        
-        if (random_double() < subsurface_scattering) {
-            srec.pdf_ptr = make_shared<cosine_pdf>(rec.normal);
-            srec.skip_pdf = false;
-            return true;
-        } else {
-            srec.pdf_ptr = nullptr;
-            srec.skip_pdf = true;
-            
-            double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
-            vec3 unit_direction = unit_vector(r_in.direction());
-            
-            vec3 microfacet_normal = sample_microfacet_normal(rec.normal, roughness);
-            
-            double cos_theta = fmin(dot(-unit_direction, microfacet_normal), 1.0);
-            double sin_theta = sqrt(1.0 - cos_theta*cos_theta);
-            
-            bool cannot_refract = ri * sin_theta > 1.0;
-            vec3 direction;
-            
-            if (cannot_refract || reflectance(cos_theta, ri) > random_double()) {
-                direction = reflect(unit_direction, microfacet_normal);
-            } else {
-                direction = refract(unit_direction, microfacet_normal, ri);
-            }
-
-            if (direction.length_squared() < 1e-8)
-                direction = microfacet_normal;
-
-            srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
-            return true;
-        }
-    }
-
     double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
-        auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
+        vec3 normal = (normalMap && !normalMap->is_empty())
+            ? apply_normal_map(normalMap, rec)
+            : rec.normal;
+        auto cos_theta = dot(normal, unit_vector(scattered.direction()));
         return cos_theta < 0 ? 0 : cos_theta / pi;
     }
 
   private:
     double refraction_index;
     double roughness;
-    double subsurface_scattering;
+    double subsurface_scattering = 0.0;
+    bool two_sided = false;
     color tint;
-    
+    shared_ptr<texture> albedoMap = nullptr;
+    shared_ptr<texture> normalMap = nullptr;
+
     vec3 sample_microfacet_normal(const vec3& normal, double alpha) const {
         double r1 = random_double();
         double r2 = random_double();
+        r1 = std::clamp(r1, 0.0, 1.0 - 1e-10);
 
-        r1 = std::clamp(r1, 0.0, 1.0 - 1e-10);  
-        
         double theta = atan(alpha * sqrt(r1) / sqrt(1.0 - r1));
         double phi = 2.0 * pi * r2;
-        
-        // Convert to world space
+
         vec3 w = normal;
-        vec3 u = ((abs(w.x()) > 0.1) ? vec3(0, 1, 0) : vec3(1, 0, 0));
-        u = unit_vector(cross(u, w));
+        vec3 u = unit_vector(cross((abs(w.x()) > 0.1 ? vec3(0,1,0) : vec3(1,0,0)), w));
         vec3 v = cross(w, u);
-        
-        vec3 sample_dir = sin(theta) * cos(phi) * u + 
-                         sin(theta) * sin(phi) * v + 
-                         cos(theta) * w;
-        
-        return unit_vector(sample_dir);
+
+        return unit_vector(sin(theta)*cos(phi)*u +
+                           sin(theta)*sin(phi)*v +
+                           cos(theta)*w);
     }
-    
+
     static double reflectance(double cosine, double refraction_index) {
         auto r0 = (1 - refraction_index) / (1 + refraction_index);
         r0 = r0*r0;
         return r0 + (1-r0)*pow((1 - cosine), 5);
     }
 };
-
-#endif
