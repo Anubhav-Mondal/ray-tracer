@@ -226,25 +226,37 @@ class glossy : public material {
     glossy(const color& albedo, double roughness = 0.1, double specular_strength = 0.8) 
         : albedo(albedo), roughness(roughness), specular_strength(specular_strength) {}
 
+    glossy& add_albedo_map(shared_ptr<texture> tex) { albedoMap = tex; return *this; }
+    glossy& add_normal_map(shared_ptr<texture> tex) { normalMap = tex; return *this; }
+
     bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
         double fresnel = schlick_approximation(r_in, rec.normal);
         
         if (random_double() < fresnel * specular_strength) {
-            vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
+            vec3 normal = (normalMap && !normalMap->is_empty())
+                ? apply_normal_map(normalMap, rec)
+                : rec.normal;
+
+            vec3 reflected = reflect(unit_vector(r_in.direction()), normal);
             reflected = unit_vector(reflected) + (roughness * random_unit_vector());
 
             if (reflected.length_squared() < 1e-8)
-                reflected = unit_vector(reflect(unit_vector(r_in.direction()), rec.normal));
+                reflected = unit_vector(reflect(unit_vector(r_in.direction()), normal));
 
             srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
             
-            srec.attenuation = color(1.0, 1.0, 1.0); // White specular highlights 
+            srec.attenuation = color(1.0, 1.0, 1.0);
             srec.pdf_ptr = nullptr;
             srec.skip_pdf = true; 
-            srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
+            
         } else {
-            srec.attenuation = albedo;
-            srec.pdf_ptr = make_shared<cosine_pdf>(rec.normal);
+            vec3 normal = (normalMap && !normalMap->is_empty())
+                ? apply_normal_map(normalMap, rec)
+                : rec.normal;
+            srec.attenuation = (albedoMap && !albedoMap->is_empty())
+                ? albedoMap->value(rec.u, rec.v, rec.p)
+                : albedo;
+            srec.pdf_ptr = make_shared<cosine_pdf>(normal);
             srec.skip_pdf = false;
         }
         
@@ -252,7 +264,11 @@ class glossy : public material {
     }
 
     double scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
-        auto cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
+        vec3 normal = (normalMap && !normalMap->is_empty())
+            ? apply_normal_map(normalMap, rec)
+            : rec.normal;
+
+        auto cos_theta = dot(normal, unit_vector(scattered.direction()));
         return cos_theta < 0 ? 0 : cos_theta / pi;
     }
 
@@ -260,11 +276,13 @@ class glossy : public material {
     color albedo;
     double roughness;
     double specular_strength;
+    double f0 = 0.04;
+    shared_ptr<texture> albedoMap = nullptr;
+    shared_ptr<texture> normalMap = nullptr;
     
     double schlick_approximation(const ray& r_in, const vec3& normal) const {
         auto cos_theta = fmin(dot(-unit_vector(r_in.direction()), normal), 1.0);
-        auto r0 = 0.04;
-        return r0 + (1-r0)*pow((1 - cos_theta), 5);
+        return f0 + (1-f0)*pow((1 - cos_theta), 5);
     }
 };
 
