@@ -133,25 +133,36 @@ class metal : public material {
 
 class dielectric : public material {
   public:
-    dielectric(double refraction_index) : refraction_index(refraction_index) {}
+    dielectric(double refraction_index, const color& albedo=color(1.0, 1.0, 1.0)) : refraction_index(refraction_index), albedo(albedo) {}
+
+    dielectric& add_albedo_map(shared_ptr<texture> tex) { albedoMap = tex; return *this; }
+    dielectric& add_normal_map(shared_ptr<texture> tex) { normalMap = tex; return *this; }
 
     bool scatter(const ray& r_in, const hit_record& rec, scatter_record& srec) const override {
-        srec.attenuation = color(1.0, 1.0, 1.0);
         srec.pdf_ptr = nullptr;
         srec.skip_pdf = true;
         double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
 
+        vec3 normal = (normalMap && !normalMap->is_empty())
+            ? apply_normal_map(normalMap, rec)
+            : rec.normal;
+
         vec3 unit_direction = unit_vector(r_in.direction());
-        double cos_theta = std::fmin(dot(-unit_direction, rec.normal), 1.0);
+        double cos_theta = std::fmin(dot(-unit_direction, normal), 1.0);
         double sin_theta = std::sqrt(1.0 - cos_theta*cos_theta);
 
         bool cannot_refract = ri * sin_theta > 1.0;
         vec3 direction;
 
-        if (cannot_refract || reflectance(cos_theta, ri) > random_double())
-            direction = reflect(unit_direction, rec.normal);
-        else
-            direction = refract(unit_direction, rec.normal, ri);
+        if (cannot_refract || reflectance(cos_theta, ri) > random_double()) {
+            direction = reflect(unit_direction, normal);
+            srec.attenuation = color(1.0, 1.0, 1.0);
+        } else {
+            direction = refract(unit_direction, normal, ri);
+            srec.attenuation = (albedoMap && !albedoMap->is_empty())
+                ? albedoMap->value(rec.u, rec.v, rec.p)
+                : albedo;
+        }
 
         srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
         return true;
@@ -159,6 +170,10 @@ class dielectric : public material {
 
   private:
     double refraction_index;
+    color albedo;
+    shared_ptr<texture> albedoMap = nullptr;
+    shared_ptr<texture> normalMap = nullptr;
+
     static double reflectance(double cosine, double refraction_index) {
         auto r0 = (1 - refraction_index) / (1 + refraction_index);
         r0 = r0*r0;

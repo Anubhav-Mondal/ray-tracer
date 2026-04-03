@@ -10,6 +10,7 @@ class texture {
     virtual ~texture() = default;
 
     virtual color value(double u, double v, const point3& p) const = 0;
+    virtual bool is_empty() const { return false; }
 };
 
 class solid_color : public texture {
@@ -73,6 +74,10 @@ class image_texture : public texture {
             auto color_scale = 1.0 / 255.0;
             return color(color_scale*pixel[0], color_scale*pixel[1], color_scale*pixel[2]);
         }
+    }
+
+    bool is_empty() const {
+        return image.width() == 0 || image.height() == 0;
     }
 
   private:
