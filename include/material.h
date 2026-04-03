@@ -183,18 +183,22 @@ class dielectric : public material {
 
 class diffuse_light : public material {
   public:
-    diffuse_light(shared_ptr<texture> tex) : tex(tex) {}
-    diffuse_light(const color& emit) : tex(make_shared<solid_color>(emit)) {}
+    diffuse_light(shared_ptr<texture> tex, bool two_sided=false) : tex(tex), two_sided(two_sided) {}
+    diffuse_light(const color& emit, bool two_sided) : tex(make_shared<solid_color>(emit)), two_sided(two_sided) {}
+
+    diffuse_light& set_intensity (double i) { intensity=i; return *this; }
 
     color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p)
     const override {
-        if (!rec.front_face)
+        if (!two_sided && !rec.front_face)
             return color(0,0,0);
-        return tex->value(u, v, p);
+        return tex->value(u, v, p) * intensity;
     }
 
   private:
     shared_ptr<texture> tex;
+    double intensity = 1.0;
+    bool two_sided = false;
 };
 
 class isotropic : public material {
