@@ -134,6 +134,8 @@ class dielectric : public material {
   public:
     dielectric(double refraction_index, const color& albedo=color(1.0, 1.0, 1.0)) : refraction_index(refraction_index), albedo(albedo) {}
 
+    dielectric& set_absorption_strength(double s) { absorption_strength = s; return *this; }
+
     dielectric& add_albedo_map(shared_ptr<texture> tex) { albedoMap = tex; return *this; }
     dielectric& add_normal_map(shared_ptr<texture> tex) { normalMap = tex; return *this; }
 
@@ -153,25 +155,60 @@ class dielectric : public material {
         bool cannot_refract = ri * sin_theta > 1.0;
         vec3 direction;
 
-        if (cannot_refract || reflectance(cos_theta, ri) > random_double()) {
-            direction = reflect(unit_direction, normal);
-            srec.attenuation = color(1.0, 1.0, 1.0);
-        } else {
-            direction = refract(unit_direction, normal, ri);
-            srec.attenuation = (albedoMap && !albedoMap->is_empty())
+        color beer = color(1, 1, 1);
+        if (!rec.front_face) {
+            double thickness = r_in.entry_point_set
+                ? (rec.p - r_in.glass_entry).length()
+                : 0.0;
+
+            color tint = (albedoMap && !albedoMap->is_empty())
                 ? albedoMap->value(rec.u, rec.v, rec.p)
                 : albedo;
+
+            color absorption = tint_to_absorption(tint, absorption_strength);
+            beer = color (
+                std::exp(-absorption.x() * thickness),
+                std::exp(-absorption.y() * thickness),
+                std::exp(-absorption.z() * thickness)
+            );
         }
 
-        srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
+        if (cannot_refract || reflectance(cos_theta, ri) > random_double()) {
+            direction = reflect(unit_direction, normal);
+            srec.attenuation = rec.front_face ? color(1, 1, 1) : beer;
+        } else {
+            direction = refract(unit_direction, normal, ri);
+            // srec.attenuation = (albedoMap && !albedoMap->is_empty())
+            //     ? albedoMap->value(rec.u, rec.v, rec.p)
+            //     : albedo;
+            srec.attenuation = rec.front_face ? color(1, 1, 1) : beer;
+        }
+
+        ray out_ray(rec.p, direction, r_in.time());
+        if (rec.front_face) {
+            out_ray.glass_entry     = rec.p;
+            out_ray.entry_point_set = true;
+        }
+
+        srec.skip_pdf_ray = out_ray;
+        // srec.skip_pdf_ray = ray(rec.p, direction, r_in.time());
         return true;
     }
 
   private:
     double refraction_index;
     color albedo;
+    double absorption_strength = 1.0;
     shared_ptr<texture> albedoMap = nullptr;
     shared_ptr<texture> normalMap = nullptr;
+
+    static color tint_to_absorption(const color& tint, double strength) {
+        return color(
+            strength * (1.0 - tint.x()),
+            strength * (1.0 - tint.y()),
+            strength * (1.0 - tint.z())
+        );
+    }
 
     static double reflectance(double cosine, double refraction_index) {
         auto r0 = (1 - refraction_index) / (1 + refraction_index);
@@ -196,7 +233,7 @@ class diffuse_light : public material {
 
   private:
     shared_ptr<texture> tex;
-    double intensity;
+    double intensity = 1.0;
 };
 
 class isotropic : public material {
