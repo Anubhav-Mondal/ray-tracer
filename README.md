@@ -75,11 +75,11 @@ cd build
 ```
 #### 3. Generate build files:
 ```
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake ..
 ```
 #### 4. Build the project:
 ```
-cmake --build .
+cmake --build . --config Release
 ```
 #### 5. Run the Renderer:
 Once compiled, run the executable.
