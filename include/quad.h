@@ -81,7 +81,7 @@ class quad : public hittable {
             return p - origin;
         }
         
-        private:
+    private:
         point3 Q;
         vec3 u, v;
         vec3 w;
