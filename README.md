@@ -38,30 +38,12 @@ Supports Depth of Field (defocus blur) for a cinematic look.
 Checker patterns, Solid colors, and Perlin Noise.
 #### Skybox: 
 Supports PNG, JPG, and HDR (High Dynamic Range).
-> Note: HDR is preferred for much more realistic environmental lighting.
-
-## Results
-![Stanford Bunny](<images/demo/stanford_bunny_smooth_metal.png>)
-
-![Utah Teapot](<images/demo/utah_teapot_smooth_metal.png>)
-
-![Frosted Crystal Ball](<images/demo/frosted_glass.png>)
-
-![Crystal Ball at Restaurant](<images/demo/crystal_ball_at_resturant.png>)
-
-![Foilwrap sphere](<images/demo/gl_normal.png>)
-
-![Glass Stanford Bunny](<images/demo/glass_bunny_high.png>)
-
-![Metal Ball at Street](<images/demo/metal_ball_at_street.png>)
-
-![Glossy Ball indoor](<images/demo/glossy_ball_indoor.png>)
+> **Note**: HDR is preferred for much more realistic environmental lighting.
 
 ## Build Guide
 ### Prerequisites
-- CMake (version 3.10 or higher).
-- A C++ compiler (GCC/Clang/MSVC) supporting C++17 or higher.
-
+- [CMake](https://cmake.org/download/) (version 3.10 or higher)
+- A C++17 compiler — [GCC](https://gcc.gnu.org/), [Clang](https://clang.llvm.org/), or [MSVC](https://visualstudio.microsoft.com/downloads/) *(recommended on Windows)*
 ### Steps to Run
 #### 1. Clone the repo: 
 ``` 
@@ -99,6 +81,7 @@ or
 ```
 ./raytracer my_render.png
 ```
+
 #### Customizing Output
 Pass the output filename as a CLI argument to set the name and format:
 ```
@@ -115,8 +98,27 @@ auto model = obj_loader("../models/filename.obj", material);
 world.add(model);
 ```
 
+## Results
+<table>
+  <tr>
+    <td align="center"><img src="images/demo/stanford_bunny_smooth_metal.png" alt="Stanford Bunny"/></td>
+    <td align="center"><img src="images/demo/utah_teapot_smooth_metal.png" alt="Utah Teapot"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/demo/frosted_glass.png" alt="Frosted Crystal Ball"/></td>
+    <td align="center"><img src="images/demo/crystal_ball_at_resturant.png" alt="Crystal Ball at Restaurant"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="images/demo/gl_normal.png" alt="Foilwrap Sphere"/></td>
+    <td align="center"><img src="images/demo/glossy_ball_indoor.png" alt="Glossy Ball Indoor"/></td>
+  </tr>
+</table>
+<p>
+Checkout the <a href="GALLERY.md">Gallery</a> for more renders and details on materials, textures, and scenes!
+</p>
+
 ## Roadmap (To-Do)
-[ ] Scene saving/loading: Implement a simple scene description format (e.g., JSON or XML) to allow users to save and load their scenes without recompiling.
+- [ ] Scene saving/loading: Implement a simple scene description format (e.g., JSON or XML) to allow users to save and load their scenes without recompiling.
 
 ## Acknowledgments
 - Ray Tracing in One Weekend series for the foundational math.
