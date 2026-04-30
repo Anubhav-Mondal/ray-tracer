@@ -10,7 +10,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(include)
 include_directories(external)
 
-set(SOURCES "src/main.cpp")
+set(SOURCES 
+    src/main.cpp
+    src/scene_loader.cpp
+    src/stb_impl.cpp
+)
 add_executable(raytracer ${SOURCES})
 
 find_package(OpenMP REQUIRED)

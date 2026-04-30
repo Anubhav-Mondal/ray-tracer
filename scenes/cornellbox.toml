@@ -1,0 +1,86 @@
+[environment]
+background = [0, 0, 0]
+
+[camera]
+vfov          = 40
+lookfrom      = [278, 278, -800]
+lookat        = [278, 278, 0]
+vup           = [0, 1, 0]
+defocus_angle = 0.0
+focus_dist    = 10.0
+
+[[material]]
+name   = "red"
+type   = "lambertian"
+albedo = [0.65, 0.05, 0.05]
+
+[[material]]
+name   = "white"
+type   = "lambertian"
+albedo = [0.73, 0.73, 0.73]
+
+[[material]]
+name   = "green"
+type   = "lambertian"
+albedo = [0.12, 0.45, 0.15]
+
+[[material]]
+name  = "light"
+type  = "diffuse_light"
+color = [15, 15, 15]
+
+[[material]]
+name   = "mirror"
+type   = "metal"
+albedo = [1, 1, 1]
+fuzz   = 0.15
+
+[[object]]
+type     = "quad"
+origin   = [555, 0, 0]
+u        = [0, 0, 555]
+v        = [0, 555, 0]
+material = "green"
+
+[[object]]
+type     = "quad"
+origin   = [0, 0, 555]
+u        = [0, 0, -555]
+v        = [0, 555, 0]
+material = "red"
+
+[[object]]
+type     = "quad"
+origin   = [0, 555, 0]
+u        = [555, 0, 0]
+v        = [0, 0, 555]
+material = "white"
+
+[[object]]
+type     = "quad"
+origin   = [0, 0, 555]
+u        = [555, 0, 0]
+v        = [0, 0, -555]
+material = "white"
+
+[[object]]
+type     = "quad"
+origin   = [555, 0, 555]
+u        = [-555, 0, 0]
+v        = [0, 555, 0]
+material = "white"
+
+[[object]]
+type     = "quad"
+origin   = [213, 554, 227]
+u        = [130, 0, 0]
+v        = [0, 0, 105]
+material = "light"
+is_light = true
+
+[[object]]
+type      = "mesh"
+path      = "models/bunny.obj"
+material  = "mirror"
+scale     = 180.0
+translate = [300, 0, 190]

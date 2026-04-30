@@ -1,0 +1,24 @@
+[environment]
+skybox     = "skybox/room_indoor.hdr"
+background = [0.0, 0.0, 0.01]
+
+[camera]
+vfov          = 40
+lookfrom      = [0, 50, 250]
+lookat        = [-12, 50, 60]
+vup           = [0, 1, 0]
+defocus_angle = 0.0
+focus_dist    = 10.0
+
+[[material]]
+name = "red_glass"
+type = "dielectric"
+ior  = 1.5
+tint = [1.0, 0.1, 0.1]
+absorption_strength = 0.04
+
+[[object]]
+type     = "mesh"
+path     = "models/bunny.obj"
+material = "red_glass"
+scale    = 70.0
