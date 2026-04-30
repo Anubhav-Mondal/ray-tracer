@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
 
-A CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, acceleration structures, and mesh loading.
+A CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, acceleration structures, and mesh loading, and a TOML-based scene file system.
 
 ## Key Features
 ### Primitives & Acceleration
@@ -19,6 +19,11 @@ A CPU-based ray tracer built from scratch in C++. This project started as an imp
 - Efficiency: Uses BVH (Bounding Volume Hierarchy) to significantly speed up render times for complex scenes.
 - Engine: Entirely CPU-based with no external graphics APIs (No OpenGL/DirectX).
 - Multi-threading with OpenMP for faster rendering on multi-core processors.
+
+### Scene File System
+Scenes and render settings are defined in human-readable TOML files, no recompiling needed to change a scene.
+- **`config.toml`** — render settings: resolution, samples, output path, and which scene to load
+- **`scenes/*.toml`** — scene data: materials, objects, camera, skybox, and lights
 
 ### Materials & Rendering
 #### Material Library: 
@@ -63,40 +68,69 @@ cmake ..
 ```
 cmake --build . --config Release
 ```
-#### 5. Run the Renderer:
+#### 5. Go back to the project root:
+```
+cd ..
+```
+#### 6. Run the Renderer:
 Once compiled, run the executable.
 #### a. On Windows:
 ```
-./Release/raytracer
-```
-or
-```
-./Release/raytracer my_render.png
+./build/Release/raytracer
 ```
 #### b. On Linux/Mac:
 ```
-./raytracer
-```
-or
-```
-./raytracer my_render.png
+./build/raytracer
 ```
 
-#### Customizing Output
-Pass the output filename as a CLI argument to set the name and format:
+## Customizing Renders
+### Using config files
+Edit `config.toml` to change render settings, and point it to any scene file in the `scenes/` folder:
+```toml
+scene  = "scenes/cornell_box.toml"
+output = "renders/cornell_box.png"
+width  = 1024
+samples_per_pixel = 500
 ```
-./raytracer my_render.png    # saves as PNG
-./raytracer my_render.jpg    # saves as JPG
-./raytracer my_render.hdr    # saves as HDR
+ 
+### Using CLI overrides
+Override any config value without editing files:
 ```
-If no argument is provided, defaults to `output.png`. The file will be saved in the `build` folder.
+./build/Release/raytracer --spp 20 --width 400          # quick preview
+./build/Release/raytracer --scene scenes/cornellbox.toml     # different scene
+./build/Release/raytracer --output renders/final.png    # different output path
+./build/Release/raytracer --depth 20 --width 1920       # high quality
+```
+Supported flags:
+ 
+| Flag | Description |
+|---|---|
+| `--scene` | Path to a scene `.toml` file |
+| `--output` | Output filename (`.png`, `.jpg`, or `.hdr`) |
+| `--spp` | Samples per pixel |
+| `--width` | Image width in pixels |
+| `--depth` | Max ray bounce depth |
+ 
+You can also pass a custom config file as the first argument:
+```
+./build/Release/raytracer my_config.toml
+./build/Release/raytracer my_config.toml --spp 50
+```
+ 
+---
 
 ## Loading Meshes
-Load OBJ files into your scenes:
-```cpp
-auto model = obj_loader("../models/filename.obj", material);
-world.add(model);
+Load OBJ files into your scenes via the scene file:
+```toml
+[[object]]
+type      = "mesh"
+path      = "models/filename.obj"
+material  = "my_material"
+scale     = 100.0
+translate = [0, 0, 0]
+rotate_y  = 45.0
 ```
+---
 
 ## Results
 <table>
@@ -118,7 +152,8 @@ Checkout the <a href="GALLERY.md">Gallery</a> for more renders and details on ma
 </p>
 
 ## Roadmap (To-Do)
-- [ ] Scene saving/loading: Implement a simple scene description format (e.g., JSON or XML) to allow users to save and load their scenes without recompiling.
+- [ ] Animation System - for rendering path traced videos.
+- [ ] More 3D format support.
 
 ## Acknowledgments
 - Ray Tracing in One Weekend series for the foundational math.
