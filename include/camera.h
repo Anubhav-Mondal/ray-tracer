@@ -1,7 +1,6 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "hittable.h"
 #include "pdf.h"
 #include "material.h"

@@ -1,7 +1,6 @@
 #ifndef MESH_LOADER_H
 #define MESH_LOADER_H
 
-#define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 #include "mesh.h"
 #include "hittable_list.h"

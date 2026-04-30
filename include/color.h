@@ -14,7 +14,7 @@ inline double linear_to_gamma(double linear_component)
     return 0;
 }
 
-void write_ldr_pixel(std::vector<unsigned char>& ldr_buffer, const color& pixel_color, int i) {
+inline void write_ldr_pixel(std::vector<unsigned char>& ldr_buffer, const color& pixel_color, int i) {
     if (i+2 >= ldr_buffer.size()) {
         std::cerr << "Error: Attempting to write pixel data beyond the end of the image data buffer!" << std::endl;
         return;
@@ -39,7 +39,7 @@ void write_ldr_pixel(std::vector<unsigned char>& ldr_buffer, const color& pixel_
     ldr_buffer[i+2] = static_cast<unsigned char>(256 * intensity.clamp(b));
 }
 
-void write_hdr_pixel(std::vector<float>& hdr_buffer, const color& pixel_color, int i) {
+inline void write_hdr_pixel(std::vector<float>& hdr_buffer, const color& pixel_color, int i) {
     if (i+2 >= hdr_buffer.size()) {
         std::cerr << "Error: Attempting to write pixel data beyond the end of the image data buffer!" << std::endl;
         return;
