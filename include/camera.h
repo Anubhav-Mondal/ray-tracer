@@ -4,6 +4,7 @@
 #include "hittable.h"
 #include "pdf.h"
 #include "material.h"
+#include "denoiser.h"
 #include "stb_image_write.h"
 #include <string>
 #include <algorithm>
@@ -55,18 +56,35 @@ class camera {
             #pragma omp parallel for schedule(dynamic, 2)
             for (int j = 0; j < image_height; j++) {
                 for (int i = 0; i < image_width; i++) {
-                    color pixel_color(0,0,0);
+                    color pixel_color(0, 0, 0);
+                    color pixel_albedo(0, 0, 0);
+                    vec3 pixel_normal(0, 0, 0);
+
                     for (int s_j = 0; s_j < sqrt_spp; s_j++) {
                         for (int s_i = 0; s_i < sqrt_spp; s_i++) {
                             ray r = get_ray(i, j, s_i, s_j);
-                            pixel_color += ray_color(r, max_depth, world, lights);
+
+                            if (s_i==0 && s_j==0) {
+                                color first_sample(0, 0, 0);
+                                first_sample = ray_color_aov(r, max_depth, world, lights,
+                                                            pixel_albedo, pixel_normal);
+                                pixel_color += first_sample;
+                            } else {
+                                pixel_color += ray_color(r, max_depth, world, lights);
+                            }
                         }
                     }
-                    if (save_ext == save_extension::hdr){
-                        write_hdr_pixel(hdr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
-                    } else {
-                        write_ldr_pixel(ldr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
-                    }
+
+                    int idx = (j * image_width + i) * 3;
+                    write_hdr_pixel(hdr_buffer, pixel_color * pixel_samples_scale, (j * image_width + i) * 3);
+
+                    albedo_buffer[idx+0] = static_cast<float> (pixel_albedo.x());
+                    albedo_buffer[idx+1] = static_cast<float> (pixel_albedo.y());
+                    albedo_buffer[idx+2] = static_cast<float> (pixel_albedo.z());
+                    
+                    normal_buffer[idx+0] = static_cast<float> (pixel_normal.x());
+                    normal_buffer[idx+1] = static_cast<float> (pixel_normal.y());
+                    normal_buffer[idx+2] = static_cast<float> (pixel_normal.z());
                 }
                 int done = ++completed_rows;
                 int percent = done * 100 / image_height;
@@ -79,6 +97,14 @@ class camera {
                     }
                 }
             }
+
+            std::clog << "\rDenoising...              " << std::flush;
+            oidn_denoise(hdr_buffer, image_width, image_height, albedo_buffer, normal_buffer);
+
+            if (save_ext != save_extension::hdr) {
+                hdr_to_ldr(hdr_buffer, ldr_buffer);
+            }
+
             std::clog << "\rSaving rendered image...  " << std::flush;
 
             std::string out_ext = (save_ext == save_extension::jpg) ? ".jpg" 
@@ -127,6 +153,9 @@ class camera {
         std::vector<unsigned char> ldr_buffer;
         std::vector<float> hdr_buffer;
 
+        std::vector<float> albedo_buffer;
+        std::vector<float> normal_buffer;
+
         enum class save_extension { png, jpg, hdr};
         save_extension save_ext = save_extension::png;
 
@@ -140,6 +169,9 @@ class camera {
 
             ldr_buffer.resize(image_width * image_height * 3, 0);
             hdr_buffer.resize(image_width * image_height * 3, 0);
+
+            albedo_buffer.assign(image_width * image_height * 3, 0.0f);
+            normal_buffer.assign(image_width * image_height * 3, 0.0f);
 
             center = lookfrom;
 
@@ -292,6 +324,62 @@ class camera {
             return color_from_emission + color_from_scatter;
         }
         
+        color ray_color_aov(const ray& r, int depth, const hittable& world, const hittable& lights, color& out_albedo, vec3& out_normal) const {
+            if (depth <= 0) return color(0, 0, 0);
+
+            hit_record rec;
+
+            if (!world.hit(r, interval(0.001, infinity), rec)) {
+                out_albedo = sample_skybox(r);
+                out_normal = vec3(0, 0, 0);
+                return out_albedo;
+            }
+
+            out_normal = rec.normal;
+
+            scatter_record srec;
+            color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
+
+            if (!rec.mat->scatter(r, rec, srec)) {
+                out_albedo = color_from_emission;
+                return color_from_emission;
+            }
+
+            out_albedo = srec.attenuation;
+
+            if (srec.skip_pdf) {
+                if (srec.skip_pdf_ray.direction().length_squared() < 1e-8)
+                    return color_from_emission;
+                return srec.attenuation * ray_color(srec.skip_pdf_ray, depth - 1, world, lights);
+            }
+
+            ray scattered;
+            double pdf_value;
+
+            if (dynamic_cast<const hittable_list*>(&lights) != nullptr
+                && static_cast<const hittable_list&>(lights).empty()) {
+                scattered = ray(rec.p, srec.pdf_ptr->generate(), r.time());
+                if (scattered.direction().length_squared() < 1e-8)
+                    return color_from_emission;
+                pdf_value = srec.pdf_ptr->value(scattered.direction());
+            } else {
+                auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+                mixture_pdf p(light_ptr, srec.pdf_ptr);
+                scattered = ray(rec.p, p.generate(), r.time());
+                if (scattered.direction().length_squared() < 1e-8)
+                    return color_from_emission;
+                pdf_value = p.value(scattered.direction());
+            }
+
+            if (pdf_value < 1e-8)
+                return color_from_emission;
+
+            double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
+            color sample_color = ray_color(scattered, depth - 1, world, lights);
+            color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_value;
+
+            return color_from_emission + color_from_scatter;
+        }
 };
 
 #endif
