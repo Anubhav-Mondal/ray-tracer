@@ -29,6 +29,9 @@ int main (int argc, char* argv[]) {
         if (arg == "--spp"    && i+1 < argc) cfg.samples_per_pixel  = std::stoi(argv[++i]);
         if (arg == "--width"  && i+1 < argc) cfg.image_width        = std::stoi(argv[++i]);
         if (arg == "--depth"  && i+1 < argc) cfg.max_depth          = std::stoi(argv[++i]);
+
+        if (arg == "--denoise")    cfg.denoise = true;
+        if (arg == "--no-denoise") cfg.denoise = false;
     }
     
     hittable_list world, lights;
@@ -57,6 +60,7 @@ int main (int argc, char* argv[]) {
     cam.vup               = scn.vup;
     cam.defocus_angle     = scn.defocus_angle;
     cam.focus_dist        = scn.focus_dist;
+    cam.denoise           = cfg.denoise;
 
     std::filesystem::create_directories(
         std::filesystem::path(cfg.output_file).parent_path()

@@ -271,6 +271,7 @@ render_config load_config(const std::string& path) {
     cfg.samples_per_pixel = tbl["samples_per_pixel"].value_or(100);
     cfg.max_depth         = tbl["max_depth"].value_or(10);
     cfg.aspect_ratio      = tbl["aspect"].value_or(1.0);
+    cfg.denoise           = tbl["denoise"].value_or(true);
 
     return cfg;
 }

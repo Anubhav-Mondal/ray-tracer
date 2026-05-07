@@ -26,7 +26,7 @@ class camera {
         double defocus_angle = 0;          // Variation angle of rays through each pixel
         double focus_dist = 10;            // Distance from camera lookfrom point to plane of perfect focus
         
-
+        bool denoise = true;               // Whether to apply AI denoising to the rendered image
         int jpg_quality = 90;
 
         camera() : skybox("") {}
@@ -97,9 +97,10 @@ class camera {
                     }
                 }
             }
-
-            std::clog << "\rDenoising...              " << std::flush;
-            oidn_denoise(hdr_buffer, image_width, image_height, albedo_buffer, normal_buffer);
+            if (denoise) {
+                std::clog << "\rDenoising...              " << std::flush;
+                oidn_denoise(hdr_buffer, image_width, image_height, albedo_buffer, normal_buffer);
+            }
 
             if (save_ext != save_extension::hdr) {
                 hdr_to_ldr(hdr_buffer, ldr_buffer);
