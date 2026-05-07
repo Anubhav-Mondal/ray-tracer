@@ -27,6 +27,7 @@ class camera {
         double focus_dist = 10;            // Distance from camera lookfrom point to plane of perfect focus
         
         bool denoise = true;               // Whether to apply AI denoising to the rendered image
+        bool save_aov = false;             // Whether to save Arbitrary Output Variables (AOVs) such as albedo and normal maps
         int jpg_quality = 90;
 
         camera() : skybox("") {}
@@ -135,6 +136,15 @@ class camera {
             }
 
             std::clog << "\rSaved " << out << " Successfully  \n";
+
+            if (save_aov) {
+                std::clog << "Saving Albedo Buffer...          " << std::flush;
+                save_debug_image(albedo_buffer, output_name + "_albedo.png", false);
+                std::clog << "\rSaved Albedo Buffer Successfully  \n";
+                std::clog << "Saving Normal Buffer...          " << std::flush;
+                save_debug_image(normal_buffer, output_name + "_normal.png", true);
+                std::clog << "\rSaved Normal Buffer Successfully  \n";
+            }
         }
 
     private:
@@ -380,6 +390,22 @@ class camera {
             color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_value;
 
             return color_from_emission + color_from_scatter;
+        }
+
+        void save_debug_image(const std::vector<float>& buffer, const std::string& filename, bool is_normal) {
+            std::vector<unsigned char> char_buffer(image_width * image_height * 3);
+
+            for (int i = 0; i < buffer.size(); i++) {
+                float val = buffer[i];
+
+                if (is_normal) {
+                    val = (val + 1.0f) * 0.5f;
+                }
+
+                char_buffer[i] = static_cast<unsigned char>(256 * std::clamp(val, 0.0f, 0.999f));
+            }
+
+            stbi_write_png(filename.c_str(), image_width, image_height, 3, char_buffer.data(), image_width * 3);
         }
 };
 

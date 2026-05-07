@@ -30,8 +30,10 @@ int main (int argc, char* argv[]) {
         if (arg == "--width"  && i+1 < argc) cfg.image_width        = std::stoi(argv[++i]);
         if (arg == "--depth"  && i+1 < argc) cfg.max_depth          = std::stoi(argv[++i]);
 
-        if (arg == "--denoise")    cfg.denoise = true;
-        if (arg == "--no-denoise") cfg.denoise = false;
+        if (arg == "--denoise")     cfg.denoise = true;
+        if (arg == "--no-denoise")  cfg.denoise = false;
+        if (arg == "--save-aov")    cfg.save_aov = true;
+        if (arg == "--no-save-aov") cfg.save_aov = false;
     }
     
     hittable_list world, lights;
@@ -61,6 +63,7 @@ int main (int argc, char* argv[]) {
     cam.defocus_angle     = scn.defocus_angle;
     cam.focus_dist        = scn.focus_dist;
     cam.denoise           = cfg.denoise;
+    cam.save_aov          = cfg.save_aov;
 
     std::filesystem::create_directories(
         std::filesystem::path(cfg.output_file).parent_path()
