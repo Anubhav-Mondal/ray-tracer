@@ -10,6 +10,8 @@ struct render_config {
     double      aspect_ratio      = 1.0;
     int         samples_per_pixel = 100;
     int         max_depth         = 10;
+    bool        denoise            = true;
+    bool        save_aov           = false;
 };
 
 struct scene_config {

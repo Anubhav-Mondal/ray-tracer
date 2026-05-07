@@ -45,6 +45,12 @@ Checker patterns, Solid colors, and Perlin Noise.
 Supports PNG, JPG, and HDR (High Dynamic Range).
 > **Note**: HDR is preferred for much more realistic environmental lighting.
 
+### Denoising & Debugging
+#### AI Denoising:
+Integrated [Intel Open Image Denoise (OIDN) 2.4](https://github.com/RenderKit/oidn) for superior image quality at low sample counts. Toggle denoising via config file or CLI.
+#### AOV Saving:
+Debug rendering with albedo and normal Arbitrary Output Variables (AOV). Save these outputs alongside the final render for analysis and troubleshooting.
+
 ## Build Guide
 ### Prerequisites
 - [CMake](https://cmake.org/download/) (version 3.10 or higher)
@@ -91,6 +97,8 @@ scene  = "scenes/cornell_box.toml"
 output = "renders/cornell_box.png"
 width  = 1024
 samples_per_pixel = 500
+denoise = true
+save_aov = false
 ```
  
 ### Using CLI overrides
@@ -100,6 +108,8 @@ Override any config value without editing files:
 ./build/Release/raytracer --scene scenes/cornellbox.toml     # different scene
 ./build/Release/raytracer --output renders/final.png    # different output path
 ./build/Release/raytracer --depth 20 --width 1920       # high quality
+./build/Release/raytracer --spp 50 --denoise            # denoise the output
+./build/Release/raytracer --save-aov                     # save albedo and normal maps
 ```
 Supported flags:
  
@@ -110,6 +120,10 @@ Supported flags:
 | `--spp` | Samples per pixel |
 | `--width` | Image width in pixels |
 | `--depth` | Max ray bounce depth |
+| `--denoise` | Enable OIDN denoising |
+| `--no-denoise` | Disable OIDN denoising |
+| `--save-aov` | Save albedo and normal AOVs |
+| `--no-save-aov` | Disable AOV saving |
  
 You can also pass a custom config file as the first argument:
 ```

@@ -14,6 +14,37 @@ inline double linear_to_gamma(double linear_component)
     return 0;
 }
 
+inline double reinhard(double x) {
+    return x / (1.0 + x);
+}
+
+inline void hdr_to_ldr(const std::vector<float>& hdr_buffer, std::vector<unsigned char>& ldr_buffer, double exposure = 1.0) {
+    int n = hdr_buffer.size() / 3;
+    ldr_buffer.resize(n * 3);
+
+    for (int i = 0; i < n; i++) {
+        int idx = i * 3;
+        double r = hdr_buffer[idx]   * exposure;
+        double g = hdr_buffer[idx+1] * exposure;
+        double b = hdr_buffer[idx+2] * exposure;
+
+        // NaN guard
+        if (r != r) r = 0.0;
+        if (g != g) g = 0.0;
+        if (b != b) b = 0.0;
+
+        // Tone map then gamma correct
+        r = linear_to_gamma(reinhard(r));
+        g = linear_to_gamma(reinhard(g));
+        b = linear_to_gamma(reinhard(b));
+
+        static const interval intensity(0.0, 0.999);
+        ldr_buffer[idx]   = static_cast<unsigned char>(256 * intensity.clamp(r));
+        ldr_buffer[idx+1] = static_cast<unsigned char>(256 * intensity.clamp(g));
+        ldr_buffer[idx+2] = static_cast<unsigned char>(256 * intensity.clamp(b));
+    }
+}
+
 inline void write_ldr_pixel(std::vector<unsigned char>& ldr_buffer, const color& pixel_color, int i) {
     if (i+2 >= ldr_buffer.size()) {
         std::cerr << "Error: Attempting to write pixel data beyond the end of the image data buffer!" << std::endl;

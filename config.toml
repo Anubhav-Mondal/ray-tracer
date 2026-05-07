@@ -4,3 +4,5 @@ width  = 1024
 aspect = 1.0
 samples_per_pixel = 500
 max_depth = 12
+denoise = true
+save_aov = false
