@@ -6,9 +6,12 @@
 #include "material.h"
 #include "denoiser.h"
 #include "stb_image_write.h"
+#include "logger.h"
 #include <string>
 #include <algorithm>
 #include <omp.h>
+#include <chrono>
+#include <iomanip>
 
 class camera {
     public:
@@ -52,7 +55,12 @@ class camera {
 
             initialize();
 
+            auto start_time = std::chrono::steady_clock::now();
             std::atomic<int> completed_rows(0);
+
+            Logger::stage("RENDERING (" + std::to_string(image_width) + "x" + 
+                std::to_string(image_height) + ", " + 
+                std::to_string(samples_per_pixel) + " SPP)");
 
             #pragma omp parallel for schedule(dynamic, 2)
             for (int j = 0; j < image_height; j++) {
@@ -88,62 +96,66 @@ class camera {
                     normal_buffer[idx+2] = static_cast<float> (pixel_normal.z());
                 }
                 int done = ++completed_rows;
-                int percent = done * 100 / image_height;
-                int prev_percent = (done-1) * 100 / image_height;
 
-                if (percent != prev_percent) {
+                if (done % (image_height / 100 + 1) == 0 || done == image_height) {
                     #pragma omp critical
                     {
-                        std::clog << "\rProgress: " << percent << "%" << std::flush;
+                        Logger::update_progress(done, image_height, start_time);
                     }
                 }
             }
+
+            std::clog << "\n";
+            Logger::finish_render(start_time);
+
             if (denoise) {
-                std::clog << "\rDenoising...              " << std::flush;
+                Logger::task_start("Running OIDN Denoiser");
                 oidn_denoise(hdr_buffer, image_width, image_height, albedo_buffer, normal_buffer);
+                Logger::task_end();
             }
 
             if (save_ext != save_extension::hdr) {
                 hdr_to_ldr(hdr_buffer, ldr_buffer);
             }
-
-            std::clog << "\rSaving rendered image...  " << std::flush;
-
+            
             std::string out_ext = (save_ext == save_extension::jpg) ? ".jpg" 
-                : (save_ext == save_extension::hdr) ? ".hdr" 
-                : ".png";
+            : (save_ext == save_extension::hdr) ? ".hdr" 
+            : ".png";
             std::string out = output_name + out_ext;
+            
+            Logger::task_start("Saving image to " + out);
 
             if (save_ext == save_extension::hdr) {
                 int result = stbi_write_hdr(out.c_str(), image_width, image_height, 3, hdr_buffer.data());
                 if (!result) {
-                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    Logger::error("Failed to save " + out);
                     return;
                 }
             }
             else if (save_ext == save_extension::jpg) {
                 int result = stbi_write_jpg(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), jpg_quality);
                 if (!result) {
-                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    Logger::error("Failed to save " + out);
                     return;
                 }
             } else {
                 int result = stbi_write_png(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), image_width * 3);
                 if (!result) {
-                    std::cerr << "\nError: Failed to save " << out << "\n";
+                    Logger::error("Failed to save " + out);
                     return;
                 }
             }
 
-            std::clog << "\rSaved " << out << " Successfully  \n";
+            Logger::task_end();
+            Logger::success("Saved " + out + " successfully.");
 
             if (save_aov) {
-                std::clog << "Saving Albedo Buffer...          " << std::flush;
+                Logger::task_start("Saving Albedo Buffer");
                 save_debug_image(albedo_buffer, output_name + "_albedo.png", false);
-                std::clog << "\rSaved Albedo Buffer Successfully  \n";
-                std::clog << "Saving Normal Buffer...          " << std::flush;
+                Logger::task_end();
+                Logger::task_start("Saving Normal Buffer");
                 save_debug_image(normal_buffer, output_name + "_normal.png", true);
-                std::clog << "\rSaved Normal Buffer Successfully  \n";
+                Logger::task_end();
             }
         }
 
