@@ -1,5 +1,6 @@
 #include "camera.h"
 #include "scene_loader.h"
+#include "logger.h"
 #include <filesystem>
 
 int main (int argc, char* argv[]) {
@@ -11,16 +12,18 @@ int main (int argc, char* argv[]) {
         first_flag = 2;
     }
 
-    std::clog << "Loading config: " << config_path << "\n";
+    Logger::task_start("Loading config: " + config_path);
 
     render_config cfg;
 
     try {
         cfg = load_config(config_path);
     } catch (const std::exception& e) {
-        std::cerr << "Config error: " << e.what() << "\n";
+        Logger::error(std::string("Config error: ") + e.what());
         return 1;
     }
+
+    Logger::task_end();
 
     for (int i = first_flag ; i < argc; i++) {
         std::string arg = argv[i];
@@ -39,16 +42,20 @@ int main (int argc, char* argv[]) {
     hittable_list world, lights;
     scene_config scn;
 
-    std::clog << "Loading scene: " << cfg.scene_path << "\n";
+    Logger::task_start("Loading scene: " + cfg.scene_path);
 
     try {
         scn = load_scene(cfg.scene_path, world, lights);
     } catch (const std::exception& e) {
-        std::cerr << "Scene error: " << e.what() << "\n";
+        Logger::error(std::string("Scene error: ") + e.what());
         return 1;
     }
 
-    std::clog << "Starting render...\n";
+    Logger::task_end();
+
+    int count = world.objects.size();
+    Logger::info("Scene initialized with " + std::to_string(count) + (count == 1 ? " object." : " objects."));
+    std::clog << "\n";
 
     camera cam(scn.skybox.c_str());
     cam.aspect_ratio      = cfg.aspect_ratio;
