@@ -1,8 +1,8 @@
 #ifndef HITTABLE_H
 #define HITTABLE_H
 
-#include "raytracing.h"
-#include "aabb.h"
+#include "rendering/raytracing.h"
+#include "geometry/aabb.h"
 
 class material; 
 

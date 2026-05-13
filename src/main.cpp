@@ -1,6 +1,6 @@
-#include "camera.h"
-#include "scene_loader.h"
-#include "logger.h"
+#include "rendering/camera.h"
+#include "io/scene_loader.h"
+#include "io/logger.h"
 #include <filesystem>
 
 int main (int argc, char* argv[]) {

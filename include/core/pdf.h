@@ -1,8 +1,8 @@
 #ifndef PDF_H
 #define PDF_H
 
-#include "onb.h"
-#include "hittable_list.h"
+#include "core/onb.h"
+#include "geometry/hittable_list.h"
 
 class pdf {
   public:

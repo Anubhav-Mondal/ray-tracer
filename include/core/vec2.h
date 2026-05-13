@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <iostream>
-#include "raytracing.h"
 
 class vec2 {
   public:

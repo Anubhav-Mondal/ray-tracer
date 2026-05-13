@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "raytracing.h"
+#include "rendering/raytracing.h"
 
 struct render_config {
     std::string scene_path = "scene.toml";

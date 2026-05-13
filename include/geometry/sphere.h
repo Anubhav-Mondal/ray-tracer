@@ -1,9 +1,9 @@
 #ifndef SPHERE_H
 #define SPHERE_H
 
-#include "hittable.h"
-#include "raytracing.h"
-#include "onb.h"
+#include "geometry/hittable.h"
+#include "core/onb.h"
+#include "rendering/raytracing.h"
 
 class sphere : public hittable {
   public:

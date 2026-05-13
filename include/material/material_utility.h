@@ -1,9 +1,9 @@
-#ifndef MATERIAL_UTILIY_H
-#define MATERIAL_UTILIY_H
+#ifndef MATERIAL_UTILITY_H
+#define MATERIAL_UTILITY_H
 
-#include "raytracing.h"
-#include "texture.h"
-#include "hittable.h"
+#include "material/texture.h"
+#include "rendering/raytracing.h"
+#include "geometry/hittable.h"
 
 inline vec3 apply_normal_map(const shared_ptr<texture>& normalMap, const hit_record& rec) {
     color normalColors = normalMap->value(rec.u, rec.v, rec.p);

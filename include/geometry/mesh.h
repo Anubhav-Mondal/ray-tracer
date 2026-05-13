@@ -1,9 +1,9 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "hittable.h"
-#include "onb.h"
-#include "raytracing.h"
+#include "geometry/hittable.h"
+#include "core/onb.h"
+#include "rendering/raytracing.h"
 
 struct Vertex {
     point3 position;

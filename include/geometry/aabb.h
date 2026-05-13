@@ -1,7 +1,7 @@
 #ifndef AABB_H
 #define AABB_H
 
-#include "raytracing.h"
+#include "rendering/raytracing.h"
 
 class aabb {
     public:

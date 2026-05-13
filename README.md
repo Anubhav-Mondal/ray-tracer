@@ -82,11 +82,11 @@ cd ..
 Once compiled, run the executable.
 #### a. On Windows:
 ```
-./build/Release/raytracer
+./build/Release/RayTracer
 ```
 #### b. On Linux/Mac:
 ```
-./build/raytracer
+./build/RayTracer
 ```
 
 ## Customizing Renders
@@ -104,12 +104,12 @@ save_aov = false
 ### Using CLI overrides
 Override any config value without editing files:
 ```
-./build/Release/raytracer --spp 20 --width 400          # quick preview
-./build/Release/raytracer --scene scenes/cornellbox.toml     # different scene
-./build/Release/raytracer --output renders/final.png    # different output path
-./build/Release/raytracer --depth 20 --width 1920       # high quality
-./build/Release/raytracer --spp 50 --denoise            # denoise the output
-./build/Release/raytracer --save-aov                     # save albedo and normal maps
+./build/Release/RayTracer --spp 20 --width 400          # quick preview
+./build/Release/RayTracer --scene scenes/cornellbox.toml     # different scene
+./build/Release/RayTracer --output renders/final.png    # different output path
+./build/Release/RayTracer --depth 20 --width 1920       # high quality
+./build/Release/RayTracer --spp 50 --denoise            # denoise the output
+./build/Release/RayTracer --save-aov                     # save albedo and normal maps
 ```
 Supported flags:
  
@@ -127,8 +127,8 @@ Supported flags:
  
 You can also pass a custom config file as the first argument:
 ```
-./build/Release/raytracer my_config.toml
-./build/Release/raytracer my_config.toml --spp 50
+./build/Release/RayTracer my_config.toml
+./build/Release/RayTracer my_config.toml --spp 50
 ```
  
 ---

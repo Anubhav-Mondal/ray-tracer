@@ -1,6 +1,6 @@
 #pragma once
-#include "hittable.h"
-#include "material.h"
+#include "geometry/hittable.h"
+#include "material/material.h"
 #include <string>
 #include <memory>
 
