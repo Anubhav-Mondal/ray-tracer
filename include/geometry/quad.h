@@ -1,8 +1,8 @@
 #ifndef QUAD_H
 #define QUAD_H
 
-#include "hittable.h"
-#include "hittable_list.h"
+#include "geometry/hittable.h"
+#include "geometry/hittable_list.h"
 
 class quad : public hittable {
     public:

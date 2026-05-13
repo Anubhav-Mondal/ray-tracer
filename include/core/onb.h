@@ -1,7 +1,7 @@
 #ifndef ONB_H
 #define ONB_H
 
-#include "raytracing.h"
+#include "rendering/raytracing.h"
 
 class onb {
   public:

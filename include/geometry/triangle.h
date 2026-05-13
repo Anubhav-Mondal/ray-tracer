@@ -1,9 +1,9 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
 
-#include "hittable.h"
-#include "onb.h"
-#include "raytracing.h"
+#include "geometry/hittable.h"
+#include "core/onb.h"
+#include "rendering/raytracing.h"
 
 class triangle : public hittable
 {

@@ -1,7 +1,7 @@
 #ifndef PERLIN_H
 #define PERLIN_H
 
-#include "raytracing.h"
+#include "rendering/raytracing.h"
 
 class perlin {
   public:

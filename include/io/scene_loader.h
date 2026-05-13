@@ -1,8 +1,8 @@
 #pragma once
 
-#include "render_config.h"
-#include "camera.h"
-#include "hittable.h"
+#include "rendering/render_config.h"
+#include "rendering/camera.h"
+#include "geometry/hittable.h"
 #include <string>
 
 render_config load_config(const std::string& path);

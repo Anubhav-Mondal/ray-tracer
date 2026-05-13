@@ -1,9 +1,9 @@
 #pragma once
 
-#include "hittable.h"
-#include "texture.h"
-#include "pdf.h"
-#include "material_utility.h"
+#include "material/texture.h"
+#include "material/material_utility.h"
+#include "core/pdf.h"
+#include "geometry/hittable.h"
 
 class scatter_record {
   public:

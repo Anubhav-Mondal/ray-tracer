@@ -1,12 +1,12 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "hittable.h"
-#include "pdf.h"
-#include "material.h"
-#include "denoiser.h"
+#include "core/pdf.h"
+#include "geometry/hittable.h"
+#include "material/material.h"
+#include "io/logger.h"
+#include "utils/denoiser.h"
 #include "stb_image_write.h"
-#include "logger.h"
 #include <string>
 #include <algorithm>
 #include <omp.h>

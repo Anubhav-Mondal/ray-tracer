@@ -1,9 +1,9 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "raytracing.h"
-#include "rtw_stb_image.h"
-#include "perlin.h"
+#include "rendering/raytracing.h"
+#include "rendering/perlin.h"
+#include "io/rtw_stb_image.h"
 
 class texture {
   public:

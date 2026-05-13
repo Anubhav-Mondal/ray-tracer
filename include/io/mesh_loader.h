@@ -1,10 +1,10 @@
 #ifndef MESH_LOADER_H
 #define MESH_LOADER_H
 
+#include "geometry/mesh.h"
+#include "geometry/hittable_list.h"
+#include "geometry/bvh.h"
 #include "tiny_obj_loader.h"
-#include "mesh.h"
-#include "hittable_list.h"
-#include "bvh.h"
 
 shared_ptr<hittable> load_obj(const std::string& path, shared_ptr<material> mat) {
     tinyobj::ObjReaderConfig reader_config;
