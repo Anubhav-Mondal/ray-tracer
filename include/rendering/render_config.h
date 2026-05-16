@@ -6,6 +6,7 @@
 struct render_config {
     std::string scene_path = "scene.toml";
     std::string output_file = "output.png";
+    std::string anim_path  = "scene.anim.toml";
     int         image_width       = 800;
     double      aspect_ratio      = 1.0;
     int         samples_per_pixel = 100;

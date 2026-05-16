@@ -1,6 +1,9 @@
 #include "rendering/camera.h"
 #include "io/scene_loader.h"
 #include "io/logger.h"
+#include "io/anim_loader.h"
+#include "rendering/anim_evaluator.h"
+#include "rendering/anim_driver.h"
 #include <filesystem>
 
 int main (int argc, char* argv[]) {
@@ -25,20 +28,52 @@ int main (int argc, char* argv[]) {
 
     Logger::task_end();
 
-    for (int i = first_flag ; i < argc; i++) {
+    std::string anim_path = "";
+
+    for (int i = first_flag; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--scene"  && i+1 < argc) cfg.scene_path         = argv[++i];
         if (arg == "--output" && i+1 < argc) cfg.output_file        = argv[++i];
         if (arg == "--spp"    && i+1 < argc) cfg.samples_per_pixel  = std::stoi(argv[++i]);
         if (arg == "--width"  && i+1 < argc) cfg.image_width        = std::stoi(argv[++i]);
         if (arg == "--depth"  && i+1 < argc) cfg.max_depth          = std::stoi(argv[++i]);
+        if (arg == "--anim"   && i+1 < argc) anim_path              = argv[++i];
 
         if (arg == "--denoise")     cfg.denoise = true;
         if (arg == "--no-denoise")  cfg.denoise = false;
         if (arg == "--save-aov")    cfg.save_aov = true;
         if (arg == "--no-save-aov") cfg.save_aov = false;
     }
-    
+
+
+    if (!anim_path.empty()) {
+        Logger::task_start("Loading animation: " + anim_path);
+        AnimData anim;
+        try {
+            anim = load_anim(anim_path);
+        } catch (const std::exception& e) {
+            Logger::error(std::string("Animation error: ") + e.what());
+            return 1;
+        }
+        Logger::task_end();
+
+        Logger::info(
+            std::to_string(anim.frame_count) + " frames | " +
+            std::to_string(anim.fps) + " fps | " +
+            std::to_string(static_cast<int>(anim.duration)) + "s"
+        );
+ 
+        std::string out_dir = "renders/frames";
+        if (!cfg.output_file.empty()) {
+            auto parent = std::filesystem::path(cfg.output_file).parent_path();
+            if (!parent.empty())
+                out_dir = parent.string() + "/frames";
+        }
+
+        run_animation(anim, cfg, out_dir);
+        return 0;
+    }
+
     hittable_list world, lights;
     scene_config scn;
 
