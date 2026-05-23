@@ -12,6 +12,7 @@
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <cstdlib>
 
 inline void patch_camera(scene_config& scn, const std::map<std::string, double>& values) {
     auto get = [&](const std::string& key, double fallback) -> double {
@@ -34,7 +35,6 @@ inline void patch_camera(scene_config& scn, const std::map<std::string, double>&
     auto vfov_it = values.find("camera.vfov");
     if (vfov_it != values.end()) scn.vfov = vfov_it->second;
 }
-
 struct ObjectAnim {
     std::string name;
     vec3  translate = {0, 0, 0};
@@ -63,9 +63,31 @@ inline std::string frame_output_path(const std::string& out_dir, int frame) {
     return ss.str();
 }
 
+
+inline bool assemble_video(const std::string& frames_dir, const std::string& out_path, int fps) {
+    std::ostringstream cmd;
+    cmd << "ffmpeg -y"
+        << " -r " << fps
+        << " -i \"" << frames_dir << "/frame_%04d.png\""
+        << " -c:v libx264"
+        << " -pix_fmt yuv420p"
+        << " -crf 18"
+        << " \"" << out_path << "\""
+        << " -loglevel error";
+
+        int ret = std::system(cmd.str().c_str());
+        return ret == 0;
+}
+
+inline void delete_frames(const std::string& frames_dir)
+{
+    std::filesystem::remove_all(frames_dir);
+}
+
 inline void run_animation(const AnimData& anim,
                           const render_config& cfg,
-                          const std::string& out_dir)
+                          const std::string& out_dir,
+                          bool keep_frames = false)
 {
     std::filesystem::create_directories(out_dir);
     auto anim_start = std::chrono::steady_clock::now();
@@ -97,6 +119,24 @@ inline void run_animation(const AnimData& anim,
         std::string out_path = ss.str();
 
         cam.render(world, lights, out_path);
+    }
+
+    std::string video_path = std::filesystem::path(out_dir).parent_path().string() + "/output.mp4";
+    Logger::task_start("Assembling video: " + video_path);
+    if (assemble_video(out_dir, video_path, anim.fps)) {
+        Logger::task_end();
+        Logger::success("Saved " + video_path);
+    } else {
+        Logger::task_end("Failed.");
+        Logger::error("ffmpeg failed — frames kept in " + out_dir);
+        return;
+    }
+
+    if (!keep_frames) {
+        delete_frames(out_dir);
+        Logger::info("Frame cache deleted.");
+    } else {
+        Logger::info("Frames kept at " + out_dir);
     }
 
     Logger::success("Frames saved to " + out_dir);
