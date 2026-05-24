@@ -12,6 +12,7 @@
 #include <omp.h>
 #include <chrono>
 #include <iomanip>
+#include <functional>
 
 class camera {
     public:
@@ -32,6 +33,9 @@ class camera {
         bool denoise = true;               // Whether to apply AI denoising to the rendered image
         bool save_aov = false;             // Whether to save Arbitrary Output Variables (AOVs) such as albedo and normal maps
         int jpg_quality = 90;
+
+        bool silent = false;
+        std::function<void(int,int)> on_progress = nullptr;
 
         camera() : skybox("") {}
         
@@ -58,6 +62,7 @@ class camera {
             auto start_time = std::chrono::steady_clock::now();
             std::atomic<int> completed_rows(0);
 
+            if (!silent)
             Logger::stage("RENDERING (" + std::to_string(image_width) + "x" + 
                 std::to_string(image_height) + ", " + 
                 std::to_string(samples_per_pixel) + " SPP)");
@@ -98,20 +103,25 @@ class camera {
                 int done = ++completed_rows;
 
                 if (done % (image_height / 100 + 1) == 0 || done == image_height) {
-                    #pragma omp critical
-                    {
-                        Logger::update_progress(done, image_height, start_time);
+                    if (on_progress) {
+                        #pragma omp critical
+                        { on_progress(done, image_height); }
+                    } else if (!silent) {
+                        #pragma omp critical
+                        { Logger::update_progress(done, image_height, start_time); }
                     }
                 }
             }
 
-            std::clog << "\n";
-            Logger::finish_render(start_time);
+            if (!silent){
+                std::clog << "\n";
+                Logger::finish_render(start_time);
+            }
 
             if (denoise) {
-                Logger::task_start("Running OIDN Denoiser");
+                if (!silent) Logger::task_start("Running OIDN Denoiser");
                 oidn_denoise(hdr_buffer, image_width, image_height, albedo_buffer, normal_buffer);
-                Logger::task_end();
+                if (!silent) Logger::task_end();
             }
 
             if (save_ext != save_extension::hdr) {
@@ -123,39 +133,39 @@ class camera {
             : ".png";
             std::string out = output_name + out_ext;
             
-            Logger::task_start("Saving image to " + out);
+            if (!silent) Logger::task_start("Saving image to " + out);
 
             if (save_ext == save_extension::hdr) {
                 int result = stbi_write_hdr(out.c_str(), image_width, image_height, 3, hdr_buffer.data());
                 if (!result) {
-                    Logger::error("Failed to save " + out);
+                    if (!silent) Logger::error("Failed to save " + out);
                     return;
                 }
             }
             else if (save_ext == save_extension::jpg) {
                 int result = stbi_write_jpg(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), jpg_quality);
                 if (!result) {
-                    Logger::error("Failed to save " + out);
+                    if (!silent) Logger::error("Failed to save " + out);
                     return;
                 }
             } else {
                 int result = stbi_write_png(out.c_str(), image_width, image_height, 3, ldr_buffer.data(), image_width * 3);
                 if (!result) {
-                    Logger::error("Failed to save " + out);
+                    if (!silent) Logger::error("Failed to save " + out);
                     return;
                 }
             }
 
-            Logger::task_end();
-            Logger::success("Saved " + out + " successfully.");
+            if (!silent) Logger::task_end();
+            if (!silent) Logger::success("Saved " + out + " successfully.");
 
             if (save_aov) {
-                Logger::task_start("Saving Albedo Buffer");
+                if (!silent) Logger::task_start("Saving Albedo Buffer");
                 save_debug_image(albedo_buffer, output_name + "_albedo.png", false);
-                Logger::task_end();
-                Logger::task_start("Saving Normal Buffer");
+                if (!silent) Logger::task_end();
+                if (!silent) Logger::task_start("Saving Normal Buffer");
                 save_debug_image(normal_buffer, output_name + "_normal.png", true);
-                Logger::task_end();
+                if (!silent) Logger::task_end();
             }
         }
 
@@ -290,7 +300,7 @@ class camera {
                     return color(color_scale*pixel[0], color_scale*pixel[1], color_scale*pixel[2]);
                 }
             } catch (...) {
-                std::cout << "Exception caught in skybox access!" << std::endl;
+                if (!silent) std::cout << "Exception caught in skybox access!" << std::endl;
                 return background;
             }
         }

@@ -35,6 +35,7 @@ inline void patch_camera(scene_config& scn, const std::map<std::string, double>&
     auto vfov_it = values.find("camera.vfov");
     if (vfov_it != values.end()) scn.vfov = vfov_it->second;
 }
+
 struct ObjectAnim {
     std::string name;
     vec3  translate = {0, 0, 0};
@@ -62,7 +63,6 @@ inline std::string frame_output_path(const std::string& out_dir, int frame) {
     ss << out_dir << "/frame_" << std::setw(4) << std::setfill('0') << frame << ".png";
     return ss.str();
 }
-
 
 inline bool assemble_video(const std::string& frames_dir, const std::string& out_path, int fps) {
     std::ostringstream cmd;
@@ -92,7 +92,15 @@ inline void run_animation(const AnimData& anim,
     std::filesystem::create_directories(out_dir);
     auto anim_start = std::chrono::steady_clock::now();
 
+    Logger::stage("ANIMATION (" + std::to_string(anim.frame_count) +
+                  " frames @ " + std::to_string(anim.fps) + " fps)");
+
+    Logger::anim_progress_init(anim.frame_count, anim.fps, anim.duration,
+                               cfg.image_width, cfg.samples_per_pixel);
+
     for (int f = 0; f < anim.frame_count; ++f) {
+        auto frame_start = std::chrono::steady_clock::now();
+
         auto values = evaluate_all(anim, f);
 
         hittable_list world, lights;
@@ -118,17 +126,42 @@ inline void run_animation(const AnimData& anim,
         ss << out_dir << "/frame_" << std::setw(4) << std::setfill('0') << f << ".png";
         std::string out_path = ss.str();
 
+        int last_rows_done = 0, last_rows_total = 1;
+
+        cam.on_progress = [&](int rows_done, int rows_total) {
+            last_rows_done  = rows_done;
+            last_rows_total = rows_total;
+            Logger::update_anim_progress(
+                f, anim.frame_count,
+                std::filesystem::path(out_path).filename().string(),
+                anim_start, frame_start,
+                rows_done, rows_total
+            );
+        };
+
+        cam.silent = true;
         cam.render(world, lights, out_path);
+        cam.on_progress = nullptr;
+
+        Logger::update_anim_progress(
+            f + 1, anim.frame_count,
+            std::filesystem::path(out_path).filename().string(),
+            anim_start, frame_start,
+            last_rows_done, last_rows_total
+        );    
     }
 
+    Logger::anim_progress_finish(anim.frame_count, anim_start);
+
     std::string video_path = std::filesystem::path(out_dir).parent_path().string() + "/output.mp4";
+
     Logger::task_start("Assembling video: " + video_path);
     if (assemble_video(out_dir, video_path, anim.fps)) {
         Logger::task_end();
         Logger::success("Saved " + video_path);
     } else {
         Logger::task_end("Failed.");
-        Logger::error("ffmpeg failed — frames kept in " + out_dir);
+        Logger::error("ffmpeg failed - frames kept in " + out_dir);
         return;
     }
 
@@ -138,6 +171,4 @@ inline void run_animation(const AnimData& anim,
     } else {
         Logger::info("Frames kept at " + out_dir);
     }
-
-    Logger::success("Frames saved to " + out_dir);
 }
