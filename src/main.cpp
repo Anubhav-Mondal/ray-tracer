@@ -28,33 +28,44 @@ int main (int argc, char* argv[]) {
 
     Logger::task_end();
 
-    std::string anim_path = "";
-
     for (int i = first_flag; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--scene"  && i+1 < argc) cfg.scene_path         = argv[++i];
-        if (arg == "--output" && i+1 < argc) cfg.output_file        = argv[++i];
-        if (arg == "--spp"    && i+1 < argc) cfg.samples_per_pixel  = std::stoi(argv[++i]);
-        if (arg == "--width"  && i+1 < argc) cfg.image_width        = std::stoi(argv[++i]);
-        if (arg == "--depth"  && i+1 < argc) cfg.max_depth          = std::stoi(argv[++i]);
-        if (arg == "--anim"   && i+1 < argc) anim_path              = argv[++i];
+        if (arg == "--denoise")       cfg.denoise     = true;
+        if (arg == "--no-denoise")    cfg.denoise     = false;
+        if (arg == "--save-aov")      cfg.save_aov    = true;
+        if (arg == "--no-save-aov")   cfg.save_aov    = false;
+        if (arg == "--anim")          cfg.anim        = true;
+        if (arg == "--no-anim")       cfg.anim        = false;
+        if (arg == "--keep-frame")    cfg.keep_frames = true;
+        if (arg == "--no-keep-frame") cfg.keep_frames = false;
 
-        if (arg == "--denoise")     cfg.denoise = true;
-        if (arg == "--no-denoise")  cfg.denoise = false;
-        if (arg == "--save-aov")    cfg.save_aov = true;
-        if (arg == "--no-save-aov") cfg.save_aov = false;
+        if (arg == "--scene-path"  && i+1 < argc) cfg.scene_path         = argv[++i];
+        if (arg == "--output"      && i+1 < argc) cfg.output_file        = argv[++i];
+        if (arg == "--spp"         && i+1 < argc) cfg.samples_per_pixel  = std::stoi(argv[++i]);
+        if (arg == "--width"       && i+1 < argc) cfg.image_width        = std::stoi(argv[++i]);
+        if (arg == "--depth"       && i+1 < argc) cfg.max_depth          = std::stoi(argv[++i]);
+        
+        if (arg == "--anim-path"   && i+1 < argc) cfg.anim_path         = argv[++i];
+        if (arg == "--anim-output" && i+1 < argc) cfg.anim_output       = argv[++i];
+        if (arg == "--fps"         && i+1 < argc) cfg.anim_fps          = std::stoi(argv[++i]);
     }
 
 
-    if (!anim_path.empty()) {
-        Logger::task_start("Loading animation: " + anim_path);
+    if (cfg.anim) {
+        Logger::task_start("Loading animation: " + cfg.anim_path);
         AnimData anim;
         try {
-            anim = load_anim(anim_path);
+            anim = load_anim(cfg.anim_path);
         } catch (const std::exception& e) {
             Logger::error(std::string("Animation error: ") + e.what());
             return 1;
         }
+
+        if (cfg.anim_fps > 0) {
+            anim.fps         = cfg.anim_fps;
+            anim.frame_count = static_cast<int>(anim.fps * anim.duration);
+        }
+
         Logger::task_end();
 
         Logger::info(
@@ -63,12 +74,7 @@ int main (int argc, char* argv[]) {
             std::to_string(static_cast<int>(anim.duration)) + "s"
         );
  
-        std::string out_dir = "renders/frames";
-        if (!cfg.output_file.empty()) {
-            auto parent = std::filesystem::path(cfg.output_file).parent_path();
-            if (!parent.empty())
-                out_dir = parent.string() + "/frames";
-        }
+        std::string out_dir = std::filesystem::path(cfg.anim_output).parent_path().string() + "/frames";
 
         run_animation(anim, cfg, out_dir);
         return 0;

@@ -301,7 +301,7 @@ render_config load_config(const std::string& path) {
     }
 
     render_config cfg;
-    cfg.scene_path        = tbl["scene"].value_or<std::string>("scene.toml");
+    cfg.scene_path        = tbl["scene_path"].value_or<std::string>("scene.toml");
     cfg.output_file       = tbl["output"].value_or<std::string>("output.png");
     cfg.image_width       = tbl["width"].value_or(800);
     cfg.samples_per_pixel = tbl["samples_per_pixel"].value_or(100);
@@ -309,6 +309,12 @@ render_config load_config(const std::string& path) {
     cfg.aspect_ratio      = tbl["aspect"].value_or(1.0);
     cfg.denoise           = tbl["denoise"].value_or(true);
     cfg.save_aov          = tbl["save_aov"].value_or(false);
+
+    cfg.anim              = tbl["anim"].value_or(false);
+    cfg.anim_fps          = tbl["anim_fps"].value_or(0);
+    cfg.anim_path         = tbl["anim_path"].value_or<std::string>("scenes/scene.anim.toml");
+    cfg.anim_output       = tbl["anim_output"].value_or<std::string>("renders/output.mp4");
+    cfg.keep_frames       = tbl["keep_frames"].value_or(false);
 
     return cfg;
 }
