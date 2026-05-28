@@ -1,8 +1,14 @@
-scene  = "scenes/scene.toml"
+scene_path  = "scenes/scene.toml"
 output = "renders/output.png"
 width  = 1024
 aspect = 1.0
-samples_per_pixel = 500
+samples_per_pixel = 30
 max_depth = 12
 denoise = true
 save_aov = false
+
+anim = true
+anim_fps = 24
+anim_path = "scenes/scene.anim.toml"
+anim_output = "renders/output.mp4"
+keep_frames = false

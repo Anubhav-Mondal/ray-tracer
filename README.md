@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
 
-A CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, acceleration structures, and mesh loading, and a TOML-based scene file system.
+A CPU-based ray tracer built from scratch in C++. This project started as an implementation of Peter Shirley's Ray Tracing in One Weekend trilogy and has been expanded with advanced material systems, texture mapping, acceleration structures, mesh loading, a TOML-based scene file system, and a keyframe animation system for rendering path-traced videos.
 
 ## Key Features
 ### Primitives & Acceleration
@@ -21,9 +21,21 @@ A CPU-based ray tracer built from scratch in C++. This project started as an imp
 - Multi-threading with OpenMP for faster rendering on multi-core processors.
 
 ### Scene File System
-Scenes and render settings are defined in human-readable TOML files, no recompiling needed to change a scene.
-- **`config.toml`** — render settings: resolution, samples, output path, and which scene to load
-- **`scenes/*.toml`** — scene data: materials, objects, camera, skybox, and lights
+Scenes and render settings are defined in human-readable TOML files - no recompiling needed to change a scene.
+- **`config.toml`**: render settings: resolution, samples, output path, animation toggle, and which scene to load
+- **`scenes/*.toml`**: scene data: materials, objects, camera, skybox, and lights
+- **`scenes/*.anim.toml`**: animation data: timeline, keyframes, and easing curves per property
+
+### Animation System
+Render path-traced videos from keyframe data defined in a `.anim.toml` file. The animation system evaluates all curves at each frame, rebuilds the scene with animated values, renders, and assembles the frames into an MP4 via ffmpeg automatically.
+
+#### Animatable properties:
+- Camera: `lookfrom`, `lookat`, `vfov`
+- Object transforms: `translate.x/y/z`, `rotate_y`, `scale`
+- Geometry: `radius` (spheres)
+- Materials: `color.r/g/b`, `fuzz`, `roughness`, `ior`, `intensity`
+#### Easing functions:
+`linear`, `ease_in`, `ease_out`, `ease_in_out`
 
 ### Materials & Rendering
 #### Material Library: 
@@ -55,6 +67,7 @@ Debug rendering with albedo and normal Arbitrary Output Variables (AOV). Save th
 ### Prerequisites
 - [CMake](https://cmake.org/download/) (version 3.10 or higher)
 - A C++17 compiler — [GCC](https://gcc.gnu.org/), [Clang](https://clang.llvm.org/), or [MSVC](https://visualstudio.microsoft.com/downloads/) *(recommended on Windows)*
+- [ffmpeg](https://ffmpeg.org/) — required for animation video export (`winget install Gyan.FFmpeg` on Windows)
 ### Steps to Run
 #### 1. Clone the repo: 
 ``` 
@@ -91,44 +104,55 @@ Once compiled, run the executable.
 
 ## Customizing Renders
 ### Using config files
-Edit `config.toml` to change render settings, and point it to any scene file in the `scenes/` folder:
+Edit `config.toml` to change render settings:
 ```toml
-scene  = "scenes/cornell_box.toml"
-output = "renders/cornell_box.png"
-width  = 1024
+scene_path        = "scenes/cornell_box.toml"
+output            = "renders/cornell_box.png"
+width             = 1024
 samples_per_pixel = 500
-denoise = true
-save_aov = false
-```
+denoise           = true
+save_aov          = false
  
+# Animation
+anim        = false
+anim_path   = "scenes/scene.anim.toml"
+anim_output = "renders/output.mp4"
+keep_frames = false
+```
+
 ### Using CLI overrides
 Override any config value without editing files:
 ```
-./build/Release/RayTracer --spp 20 --width 400          # quick preview
-./build/Release/RayTracer --scene scenes/cornellbox.toml     # different scene
-./build/Release/RayTracer --output renders/final.png    # different output path
-./build/Release/RayTracer --depth 20 --width 1920       # high quality
-./build/Release/RayTracer --spp 50 --denoise            # denoise the output
-./build/Release/RayTracer --save-aov                     # save albedo and normal maps
+./build/Release/RayTracer --spp 20 --width 400           # quick preview
+./build/Release/RayTracer --scene-path scenes/scene.toml # different scene
+./build/Release/RayTracer --output renders/final.png     # different output
+./build/Release/RayTracer --spp 50 --denoise             # denoise output
+./build/Release/RayTracer --save-aov                     # save AOV maps
+./build/Release/RayTracer --anim                         # render animation
+./build/Release/RayTracer --anim --fps 12                # preview at 12fps
+./build/Release/RayTracer --anim --keep-frames           # keep frame cache
 ```
 Supported flags:
  
 | Flag | Description |
 |---|---|
-| `--scene` | Path to a scene `.toml` file |
+| `--scene-path` | Path to scene `.toml` file |
 | `--output` | Output filename (`.png`, `.jpg`, or `.hdr`) |
 | `--spp` | Samples per pixel |
 | `--width` | Image width in pixels |
 | `--depth` | Max ray bounce depth |
-| `--denoise` | Enable OIDN denoising |
-| `--no-denoise` | Disable OIDN denoising |
-| `--save-aov` | Save albedo and normal AOVs |
-| `--no-save-aov` | Disable AOV saving |
+| `--denoise` / `--no-denoise` | Toggle OIDN denoising |
+| `--save-aov` / `--no-save-aov` | Toggle AOV saving |
+| `--anim` / `--no-anim` | Toggle animation mode |
+| `--anim-path` | Path to `.anim.toml` file |
+| `--anim-output` | Output `.mp4` path |
+| `--fps` | Override animation fps |
+| `--keep-frames` / `--no-keep-frames` | Keep or delete frame cache after export |
  
 You can also pass a custom config file as the first argument:
 ```
 ./build/Release/RayTracer my_config.toml
-./build/Release/RayTracer my_config.toml --spp 50
+./build/Release/RayTracer my_config.toml --spp 50 --anim
 ```
  
 ---
@@ -137,6 +161,7 @@ You can also pass a custom config file as the first argument:
 Load OBJ files into your scenes via the scene file:
 ```toml
 [[object]]
+name      = "dragon"        # required if you want to animate this object
 type      = "mesh"
 path      = "models/filename.obj"
 material  = "my_material"
@@ -166,12 +191,14 @@ Checkout the <a href="GALLERY.md">Gallery</a> for more renders and details on ma
 </p>
 
 ## Roadmap (To-Do)
-- [ ] Animation System - for rendering path traced videos.
+- [ ] Temporal Anti-Aliasing (TAA) / Motion Vectors - reduce shimmering in animations.
 - [ ] More 3D format support.
 
 ## Acknowledgments
 - Ray Tracing in One Weekend series for the foundational math.
-
 - `stb_image` and `tinyobjloader` for header-only utility support.
+- [Intel Open Image Denoise](https://github.com/RenderKit/oidn) for AI denoising.
+- [ffmpeg](https://ffmpeg.org/) for video assembly.
+
 ---
 <p align="center">Created by <b>Anubhav Mondal</b></p>

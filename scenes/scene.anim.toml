@@ -1,0 +1,37 @@
+[timeline]
+fps      = 24
+duration = 5.0
+
+[[track]]
+target   = "camera"
+property = "lookfrom.x"
+
+[[track.keyframe]]
+frame = 0
+value = 0.0
+
+[[track.keyframe]]
+frame = 60
+value = 150.0
+easing = "ease_in_out"
+
+[[track.keyframe]]
+frame = 120
+value = 0.0
+
+[[track]]
+target   = "bunny"
+property = "translate.y"
+
+[[track.keyframe]]
+frame = 0
+value = 0.0
+
+[[track.keyframe]]
+frame = 60
+value = 40.0
+easing = "ease_in_out"
+
+[[track.keyframe]]
+frame = 120
+value = 0.0

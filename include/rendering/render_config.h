@@ -4,14 +4,20 @@
 #include "rendering/raytracing.h"
 
 struct render_config {
-    std::string scene_path = "scene.toml";
-    std::string output_file = "output.png";
+    std::string scene_path        = "scene.toml";
+    std::string output_file       = "output.png";
     int         image_width       = 800;
     double      aspect_ratio      = 1.0;
     int         samples_per_pixel = 100;
     int         max_depth         = 10;
-    bool        denoise            = true;
-    bool        save_aov           = false;
+    bool        denoise           = true;
+    bool        save_aov          = false;
+
+    bool anim                     = false;
+    int anim_fps                  = 0;
+    std::string anim_path         = "scene.anim.toml";
+    std::string anim_output       = "output.mp4";
+    bool keep_frames              = false;
 };
 
 struct scene_config {

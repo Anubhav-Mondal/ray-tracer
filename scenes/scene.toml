@@ -18,6 +18,7 @@ tint = [1.0, 0.1, 0.1]
 absorption_strength = 0.04
 
 [[object]]
+name     = "bunny"
 type     = "mesh"
 path     = "models/bunny.obj"
 material = "red_glass"
