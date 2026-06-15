@@ -14,8 +14,8 @@ A CPU-based ray tracer built from scratch in C++. This project started as an imp
 
 ## Key Features
 ### Primitives & Acceleration
-- Supported Shapes: Spheres, Triangles, Quads, and OBJ Meshes.
-- Mesh Loading: Load 3D models from OBJ files using TinyObjLoader. If vertex normals are not provided in the OBJ file, they are automatically generated based on face geometry.
+- Supported Shapes: Spheres, Triangles, Quads, and OBJ and glTF Meshes.
+- Mesh Loading: Load 3D models from OBJ and glTF files using TinyObjLoader and TinyGLTF. If vertex normals are not provided in the OBJ or glTF file, they are automatically generated based on face geometry.
 - Efficiency: Uses BVH (Bounding Volume Hierarchy) to significantly speed up render times for complex scenes.
 - Engine: Entirely CPU-based with no external graphics APIs (No OpenGL/DirectX).
 - Multi-threading with OpenMP for faster rendering on multi-core processors.
@@ -161,9 +161,9 @@ You can also pass a custom config file as the first argument:
 Load OBJ files into your scenes via the scene file:
 ```toml
 [[object]]
-name      = "dragon"        # required if you want to animate this object
+name      = "dragon"                 # required if you want to animate this object
 type      = "mesh"
-path      = "models/filename.obj"
+path      = "models/filename.gltf"   # supports OBJ and glTF
 material  = "my_material"
 scale     = 100.0
 translate = [0, 0, 0]
@@ -192,7 +192,7 @@ Checkout the <a href="GALLERY.md">Gallery</a> for more renders and details on ma
 
 ## Roadmap (To-Do)
 - [ ] Temporal Anti-Aliasing (TAA) / Motion Vectors - reduce shimmering in animations.
-- [ ] More 3D format support.
+- [ ] Global Volume Support - render fog, smoke, and participating media.
 
 ## Acknowledgments
 - Ray Tracing in One Weekend series for the foundational math.
