@@ -1,5 +1,5 @@
 #include "io/scene_loader.h"
-#include "io/mesh_loader_fwd.h"
+#include "io/mesh_loader.h"
 #include "material/material.h"
 #include "material/texture.h"
 #include "geometry/sphere.h"
@@ -253,7 +253,7 @@ static shared_ptr<hittable> parse_object(
     if (type == "mesh") {
         std::string path = t["path"].value_or<std::string>("");
         if (path.empty()) throw std::runtime_error("mesh object missing 'path'");
-        auto obj = load_obj(path, mat);
+        auto obj = load_mesh(path, mat);
         return apply_transforms(obj, t, name, overrides);
     }
 

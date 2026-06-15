@@ -13,6 +13,7 @@ set(SOURCES
     src/main.cpp
     src/scene_loader.cpp
     src/stb_impl.cpp
+    src/tinygltf_impl.cpp
 )
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
