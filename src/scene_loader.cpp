@@ -1,6 +1,7 @@
 #include "io/scene_loader.h"
 #include "io/mesh_loader.h"
 #include "material/material.h"
+#include "material/pbr_material.h"
 #include "material/texture.h"
 #include "geometry/sphere.h"
 #include "geometry/quad.h"
@@ -191,6 +192,52 @@ static shared_ptr<material> parse_material(
     if (type == "isotropic") {
         auto tex = parse_albedo_field(t, "albedo", color(1, 1, 1));
         return make_shared<isotropic>(tex);
+    }
+
+    if (type == "pbr") {
+        auto mat = make_shared<pbr_material>();
+
+        //  Base color 
+        color base = patch_color(parse_color(t["base_color"], color(1, 1, 1)), "material.base_color");
+        mat->set_base_color(base);
+
+        //  Scalar factors 
+        mat->set_metallic (get("material.metallic",  t["metallic"].value_or(0.0)));
+        mat->set_roughness(get("material.roughness", t["roughness"].value_or(0.5)));
+        mat->set_ior      (get("material.ior",       t["ior"].value_or(1.5)));
+        mat->set_normal_scale    (get("material.normal_scale",     t["normal_scale"].value_or(1.0)));
+        mat->set_occlusion_strength(get("material.occlusion_strength", t["occlusion_strength"].value_or(1.0)));
+        mat->set_double_sided(t["double_sided"].value_or(false));
+
+        //  Emissive 
+        color emissive = patch_color(parse_color(t["emissive"], color(0, 0, 0)), "material.emissive");
+        mat->set_emissive(emissive);
+        mat->set_emissive_strength(get("material.emissive_strength", t["emissive_strength"].value_or(1.0)));
+
+        //  Alpha 
+        std::string alpha_mode = t["alpha_mode"].value_or<std::string>("OPAQUE");
+        double alpha_cutoff    = get("material.alpha_cutoff", t["alpha_cutoff"].value_or(0.5));
+        if      (alpha_mode == "MASK")  mat->set_alpha_mode(pbr_material::AlphaMode::Mask,  alpha_cutoff);
+        else if (alpha_mode == "BLEND") mat->set_alpha_mode(pbr_material::AlphaMode::Blend, alpha_cutoff);
+        else                            mat->set_alpha_mode(pbr_material::AlphaMode::Opaque, alpha_cutoff);
+
+        //  Textures (optional)
+        if (auto p = t["base_color_texture"].value<std::string>())
+            mat->add_base_color_texture(make_shared<image_texture>(p->c_str()));
+
+        if (auto p = t["metallic_roughness_texture"].value<std::string>())
+            mat->add_metallic_roughness_texture(make_shared<image_texture>(p->c_str()));
+
+        if (auto p = t["normal_texture"].value<std::string>())
+            mat->add_normal_texture(make_shared<image_texture>(p->c_str()));
+
+        if (auto p = t["occlusion_texture"].value<std::string>())
+            mat->add_occlusion_texture(make_shared<image_texture>(p->c_str()));
+
+        if (auto p = t["emissive_texture"].value<std::string>())
+            mat->add_emissive_texture(make_shared<image_texture>(p->c_str()));
+
+        return mat;
     }
 
     throw std::runtime_error("Unknown material type: '" + type + "'");
